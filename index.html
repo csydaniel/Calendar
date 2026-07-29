@@ -4,138 +4,117 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>One Dot — wallpaper builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,700;1,400;1,700&family=Roboto:ital,wght@0,400;0,700;1,400&family=Noto+Sans:ital,wght@0,400;0,700;1,400&family=Noto+Sans+KR:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,400;0,700;1,400&family=Oswald:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --ink:#e9e9ea;
-    --ink-dim:#8a8a90;
-    --ink-faint:#55555c;
-    --panel:#141416;
-    --panel-2:#1c1c20;
-    --line:#2a2a2f;
-    --accent:#5ac8fa;
-    --radius:14px;
-    color-scheme: dark;
+    --bg:#08080a;
+    --panel:#111114;
+    --panel-2:#191920;
+    --line:#26262e;
+    --line-hi:#3a3a46;
+    --ink:#ecedf1;
+    --ink-2:#9a9aa6;
+    --ink-3:#5c5c68;
+    --accent:#6ee7c8;
+    --warn:#ffb454;
+    color-scheme:dark;
   }
   *{box-sizing:border-box}
-  html,body{margin:0;height:100%}
+  html,body{margin:0}
   body{
-    background:#0a0a0b;
+    background:
+      radial-gradient(900px 500px at 80% -10%, #14202080, transparent 70%),
+      var(--bg);
     color:var(--ink);
-    font:400 14px/1.5 ui-sans-serif,-apple-system,"SF Pro Text",Inter,system-ui,sans-serif;
+    font:400 14px/1.55 Inter,ui-sans-serif,-apple-system,system-ui,sans-serif;
     -webkit-font-smoothing:antialiased;
+    min-height:100vh;
   }
-  .wrap{
-    display:grid;
-    grid-template-columns:minmax(300px,420px) 1fr;
-    gap:32px;
-    max-width:1180px;
-    margin:0 auto;
-    padding:36px 24px 80px;
-  }
-  header{grid-column:1/-1;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:4px}
-  h1{
-    font:600 20px/1 ui-sans-serif,-apple-system,system-ui,sans-serif;
-    letter-spacing:-.02em;margin:0;
-  }
-  header p{margin:0;color:var(--ink-dim);font-size:13px}
+  .shell{display:grid;grid-template-columns:minmax(280px,360px) 1fr;gap:40px;max-width:1240px;margin:0 auto;padding:34px 24px 90px}
+  header{grid-column:1/-1;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;
+    padding-bottom:18px;border-bottom:1px solid var(--line);margin-bottom:6px}
+  .brand{display:flex;align-items:center;gap:11px}
+  .brand .mark{width:11px;height:11px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px #6ee7c822}
+  h1{margin:0;font:600 19px/1 Inter;letter-spacing:-.025em}
+  header .sub{color:var(--ink-3);font-size:12.5px;margin:0}
 
-  /* ---- stage ---- */
-  .stage{
-    position:sticky;top:36px;align-self:start;
-    display:flex;flex-direction:column;align-items:center;gap:14px;
-  }
-  .phone{
-    position:relative;
-    width:min(300px,72vw);
-    aspect-ratio:1290/2796;
-    border-radius:44px;
-    padding:6px;
-    background:linear-gradient(160deg,#3a3a40,#141416 40%,#3a3a40);
-    box-shadow:0 30px 70px -20px #000, 0 0 0 1px #2c2c31;
-  }
-  .phone canvas{
-    width:100%;height:100%;display:block;
-    border-radius:38px;
-  }
-  .notch{
-    position:absolute;top:14px;left:50%;transform:translateX(-50%);
-    width:29%;height:3.1%;border-radius:99px;background:#000;
-  }
-  .stat{color:var(--ink-faint);font-size:12px;text-align:center;font-variant-numeric:tabular-nums}
-  .stat b{color:var(--ink);font-weight:500}
+  /* preview */
+  .stage{position:sticky;top:28px;align-self:start;display:flex;flex-direction:column;gap:16px;align-items:center}
+  .phone{position:relative;width:min(292px,74vw);aspect-ratio:1290/2796;border-radius:46px;padding:7px;
+    background:linear-gradient(155deg,#43434c,#101014 38%,#43434c);box-shadow:0 40px 80px -28px #000,0 0 0 1px #2b2b33}
+  .phone canvas{width:100%;height:100%;display:block;border-radius:39px;background:#000}
+  .notch{position:absolute;top:16px;left:50%;transform:translateX(-50%);width:28%;height:3%;border-radius:99px;background:#000}
+  .readout{width:100%;display:flex;flex-direction:column;gap:6px;
+    font:400 12px/1.5 "JetBrains Mono",ui-monospace,monospace;color:var(--ink-3)}
+  .readout .big{font-size:13px;color:var(--ink)}
+  .bar{height:3px;border-radius:2px;background:var(--panel-2);overflow:hidden}
+  .bar i{display:block;height:100%;background:var(--accent)}
 
-  /* ---- controls ---- */
-  .controls{display:flex;flex-direction:column;gap:18px;min-width:0}
-  fieldset{
-    border:1px solid var(--line);border-radius:var(--radius);
-    background:var(--panel);margin:0;padding:16px 16px 18px;
-  }
-  legend{
-    padding:0 8px;margin-left:4px;
-    font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-dim);
-  }
-  .row{display:flex;gap:10px;flex-wrap:wrap}
-  .row > *{flex:1 1 130px;min-width:0}
-  label{display:block;font-size:12px;color:var(--ink-dim);margin-bottom:5px}
-  input[type=date],input[type=text],input[type=number],select{
-    width:100%;background:var(--panel-2);border:1px solid var(--line);
-    color:var(--ink);border-radius:9px;padding:8px 10px;font:inherit;font-size:13px;
-  }
-  input:focus-visible,select:focus-visible,button:focus-visible{
-    outline:2px solid var(--accent);outline-offset:2px;
-  }
-  input[type=range]{width:100%;accent-color:var(--accent)}
-  .swatches{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-  .sw{
-    display:flex;align-items:center;gap:10px;
-    background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;
-  }
-  .sw input[type=color]{
-    width:28px;height:28px;padding:0;border:none;border-radius:7px;background:none;cursor:pointer;flex:0 0 auto;
-  }
-  .sw span{font-size:12px;color:var(--ink-dim)}
-  .slide{display:flex;flex-direction:column;gap:2px}
-  .slide .v{font-size:11px;color:var(--ink-faint);font-variant-numeric:tabular-nums}
-
-  /* highlights */
-  .hl{display:grid;grid-template-columns:1fr 1fr auto auto;gap:8px;align-items:end;margin-bottom:8px}
-  .hl input[type=color]{width:34px;height:34px;padding:0;border:none;border-radius:8px;background:none}
-  .x{
-    background:none;border:1px solid var(--line);color:var(--ink-dim);
-    border-radius:8px;width:34px;height:34px;cursor:pointer;font-size:15px;line-height:1;
-  }
-  .x:hover{color:#ff6b6b;border-color:#5a2a2a}
-  button.action{
-    background:var(--panel-2);border:1px solid var(--line);color:var(--ink);
-    border-radius:10px;padding:9px 14px;font:inherit;font-size:13px;cursor:pointer;
-  }
-  button.action:hover{border-color:#3d3d45;background:#232329}
-  button.primary{background:var(--ink);color:#0a0a0b;border-color:var(--ink);font-weight:500}
-  button.primary:hover{background:#fff}
-  .btns{display:flex;gap:10px;flex-wrap:wrap}
-
-  code.url{
-    display:block;background:#0e0e10;border:1px solid var(--line);border-radius:10px;
-    padding:11px 12px;font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;
-    color:#9fdcf5;word-break:break-all;margin-bottom:10px;
-  }
-  .hint{color:var(--ink-faint);font-size:12px;margin:10px 0 0}
-  ol.steps{margin:6px 0 0;padding-left:20px;color:var(--ink-dim);font-size:13px}
+  /* controls */
+  .panels{display:flex;flex-direction:column;gap:14px;min-width:0}
+  details{border:1px solid var(--line);border-radius:14px;background:var(--panel);overflow:hidden}
+  details[open]{border-color:var(--line-hi)}
+  summary{list-style:none;cursor:pointer;padding:14px 16px;display:flex;align-items:center;gap:10px;
+    font:500 13px/1 Inter;letter-spacing:.01em;user-select:none}
+  summary::-webkit-details-marker{display:none}
+  summary::after{content:"";margin-left:auto;width:7px;height:7px;border-right:1.5px solid var(--ink-3);
+    border-bottom:1.5px solid var(--ink-3);transform:rotate(45deg);transition:transform .18s}
+  details[open] summary::after{transform:rotate(225deg)}
+  summary .n{font:400 10.5px/1 "JetBrains Mono",monospace;color:var(--ink-3);letter-spacing:.1em}
+  .body{padding:2px 16px 18px;border-top:1px solid var(--line)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+  .f{margin-top:12px}
+  label{display:block;font-size:11.5px;color:var(--ink-2);margin-bottom:5px}
+  input[type=date],input[type=text],input[type=number],select,input[type=url]{
+    width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--ink);
+    border-radius:9px;padding:8px 10px;font:400 13px/1.3 Inter}
+  input[type=range]{width:100%;accent-color:var(--accent);margin:2px 0}
+  input:focus-visible,select:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .val{float:right;font:400 11px/1 "JetBrains Mono",monospace;color:var(--ink-3)}
+  .sw{display:flex;align-items:center;gap:9px;background:var(--panel-2);border:1px solid var(--line);
+    border-radius:10px;padding:7px 9px}
+  .sw input[type=color]{width:26px;height:26px;padding:0;border:none;border-radius:6px;background:none;cursor:pointer;flex:0 0 auto}
+  .sw span{font-size:11.5px;color:var(--ink-2)}
+  .tog{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--ink);cursor:pointer}
+  .tog input{accent-color:var(--accent);width:15px;height:15px}
+  .card{border:1px solid var(--line);border-radius:11px;padding:12px;margin-top:10px;background:var(--panel-2)}
+  .card .top{display:flex;align-items:center;gap:9px;margin-bottom:10px}
+  .card .top strong{font:500 12px/1 Inter;color:var(--ink-2)}
+  .x{margin-left:auto;background:none;border:1px solid var(--line-hi);color:var(--ink-3);border-radius:7px;
+    width:26px;height:26px;cursor:pointer;font-size:14px;line-height:1}
+  .x:hover{color:#ff7a7a;border-color:#5c2a2a}
+  button.act{background:var(--panel-2);border:1px solid var(--line-hi);color:var(--ink);border-radius:10px;
+    padding:9px 14px;font:400 13px/1 Inter;cursor:pointer}
+  button.act:hover{background:#232330}
+  button.pri{background:var(--ink);color:#08080a;border-color:var(--ink);font-weight:500}
+  button.pri:hover{background:#fff}
+  .btns{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}
+  .hint{color:var(--ink-3);font-size:11.5px;margin:9px 0 0}
+  .hint.warn{color:var(--warn)}
+  code.url{display:block;background:#0b0b0e;border:1px solid var(--line);border-radius:10px;padding:11px;
+    font:400 11px/1.6 "JetBrains Mono",monospace;color:#8fe3cd;word-break:break-all;max-height:120px;overflow:auto}
+  ol.steps{margin:12px 0 0;padding-left:18px;color:var(--ink-2);font-size:12.5px}
   ol.steps li{margin-bottom:5px}
   ol.steps b{color:var(--ink);font-weight:500}
-  @media (max-width:820px){
-    .wrap{grid-template-columns:1fr;gap:24px}
-    .stage{position:static}
-  }
-  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+  @media (max-width:860px){.shell{grid-template-columns:1fr;gap:26px}.stage{position:static}.grid3{grid-template-columns:1fr 1fr}}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="shell">
 
   <header>
-    <h1>One Dot</h1>
-    <p>One dot per day between two dates. Fills at midnight.</p>
+    <div class="brand">
+      <span class="mark"></span>
+      <div>
+        <h1>One Dot</h1>
+        <p class="sub">One dot per day. Fills at local midnight.</p>
+      </div>
+    </div>
+    <p class="sub" id="saved">Settings save automatically</p>
   </header>
 
   <div class="stage">
@@ -143,286 +122,503 @@
       <canvas id="cv" width="1290" height="2796"></canvas>
       <div class="notch"></div>
     </div>
-    <div class="stat" id="stat"></div>
+    <div class="readout">
+      <div class="bar"><i id="barFill"></i></div>
+      <div class="big" id="r1"></div>
+      <div id="r2"></div>
+    </div>
   </div>
 
-  <div class="controls">
+  <div class="panels">
 
-    <fieldset>
-      <legend>Period</legend>
-      <div class="row">
-        <div><label for="start">Start date</label><input type="date" id="start"></div>
-        <div><label for="end">End date</label><input type="date" id="end"></div>
-      </div>
-      <div class="row" style="margin-top:10px">
-        <div><label for="today">Preview "today" as</label><input type="date" id="today"></div>
-      </div>
-      <p class="hint">Preview only — the live wallpaper always uses the real current date.</p>
-    </fieldset>
-
-    <fieldset>
-      <legend>Colors</legend>
-      <div class="swatches">
-        <label class="sw"><input type="color" id="cBg" value="#000000"><span>Background</span></label>
-        <label class="sw"><input type="color" id="cPast" value="#ffffff"><span>Days passed</span></label>
-        <label class="sw"><input type="color" id="cLeft" value="#2e2e33"><span>Days left</span></label>
-        <label class="sw"><input type="color" id="cToday" value="#ff9f0a"><span>Today</span></label>
-      </div>
-    </fieldset>
-
-    <fieldset>
-      <legend>Dots</legend>
-      <div class="row">
-        <div>
-          <label for="shape">Shape</label>
-          <select id="shape">
-            <option value="circle">Circle</option>
-            <option value="squircle">Rounded square</option>
-            <option value="square">Square</option>
-            <option value="diamond">Diamond</option>
-          </select>
+    <details open>
+      <summary><span class="n">01</span> Period &amp; time zone</summary>
+      <div class="body">
+        <div class="grid2 f">
+          <div><label for="s">Start date</label><input type="date" id="s" data-p="s"></div>
+          <div><label for="e">End date</label><input type="date" id="e" data-p="e"></div>
         </div>
-        <div class="slide">
-          <label for="fill">Dot size <span class="v" id="fillV"></span></label>
-          <input type="range" id="fill" min="20" max="95" value="62">
+        <div class="grid3 f">
+          <div>
+            <label for="tzA">Zone A</label>
+            <select id="tzA" data-p="tzA">
+              <option value="9">Korea / Japan (+9)</option>
+              <option value="8">Singapore / China (+8)</option>
+              <option value="7">Vietnam / Thailand (+7)</option>
+              <option value="1">Germany, winter (+1)</option>
+              <option value="2">Germany, summer (+2)</option>
+              <option value="0">UTC (+0)</option>
+              <option value="-5">New York, winter (−5)</option>
+              <option value="-8">Los Angeles, winter (−8)</option>
+            </select>
+          </div>
+          <div>
+            <label for="tzB">Zone B</label>
+            <select id="tzB" data-p="tzB">
+              <option value="9">Korea / Japan (+9)</option>
+              <option value="8">Singapore / China (+8)</option>
+              <option value="7">Vietnam / Thailand (+7)</option>
+              <option value="1">Germany, winter (+1)</option>
+              <option value="2">Germany, summer (+2)</option>
+              <option value="0">UTC (+0)</option>
+              <option value="-5">New York, winter (−5)</option>
+              <option value="-8">Los Angeles, winter (−8)</option>
+            </select>
+          </div>
+          <div>
+            <label for="tzUse">In use</label>
+            <select id="tzUse" data-p="tzUse"><option value="A">Zone A</option><option value="B">Zone B</option></select>
+          </div>
+        </div>
+        <div class="f"><label for="pv">Preview a different day</label><input type="date" id="pv"></div>
+        <p class="hint">Preview only. The wallpaper always renders the real current date in the zone you selected.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary><span class="n">02</span> Colors</summary>
+      <div class="body">
+        <div class="grid2 f">
+          <label class="sw"><input type="color" data-p="col.bg"><span>Background</span></label>
+          <label class="sw"><input type="color" data-p="col.past"><span>Days passed</span></label>
+          <label class="sw"><input type="color" data-p="col.left"><span>Days left</span></label>
+          <label class="sw"><input type="color" data-p="col.today"><span>Today</span></label>
         </div>
       </div>
-      <div class="row" style="margin-top:12px">
-        <div class="slide"><label for="top">Top clear zone <span class="v" id="topV"></span></label><input type="range" id="top" min="8" max="45" value="27"></div>
-        <div class="slide"><label for="bottom">Bottom clear zone <span class="v" id="bottomV"></span></label><input type="range" id="bottom" min="8" max="45" value="22"></div>
-        <div class="slide"><label for="side">Side margin <span class="v" id="sideV"></span></label><input type="range" id="side" min="2" max="20" value="8"></div>
-      </div>
-      <p class="hint">Clear zones keep dots out from under the clock and the widget row.</p>
-    </fieldset>
+    </details>
 
-    <fieldset>
-      <legend>Checkpoints</legend>
-      <div id="hlList"></div>
-      <div class="btns">
-        <button class="action" id="addHl" type="button">Add checkpoint</button>
+    <details>
+      <summary><span class="n">03</span> Dots &amp; grid</summary>
+      <div class="body">
+        <div class="grid2 f">
+          <div>
+            <label for="shape">Shape</label>
+            <select id="shape" data-p="dot.shape">
+              <option value="circle">Circle</option><option value="squircle">Rounded square</option>
+              <option value="square">Square</option><option value="diamond">Diamond</option>
+            </select>
+          </div>
+          <div><label>Dot size<span class="val" data-v="dot.fill">%</span></label>
+            <input type="range" min="15" max="98" data-p="dot.fill"></div>
+        </div>
+        <div class="grid3 f">
+          <div><label>Top clear<span class="val" data-v="pad.t">%</span></label><input type="range" min="0" max="50" data-p="pad.t"></div>
+          <div><label>Bottom clear<span class="val" data-v="pad.b">%</span></label><input type="range" min="0" max="50" data-p="pad.b"></div>
+          <div><label>Side margin<span class="val" data-v="pad.x">%</span></label><input type="range" min="0" max="25" data-p="pad.x"></div>
+        </div>
+        <div class="grid2 f">
+          <div><label>Nudge horizontal<span class="val" data-v="off.x">%</span></label><input type="range" min="-25" max="25" step="0.5" data-p="off.x"></div>
+          <div><label>Nudge vertical<span class="val" data-v="off.y">%</span></label><input type="range" min="-25" max="25" step="0.5" data-p="off.y"></div>
+        </div>
+        <p class="hint">Clear zones keep dots away from the clock and the widget row. Nudge moves the whole grid.</p>
       </div>
-      <p class="hint">Each checkpoint draws a ring around a day or a range of days.</p>
-    </fieldset>
+    </details>
 
-    <fieldset>
-      <legend>Export</legend>
-      <div class="row" style="margin-bottom:12px">
-        <div>
-          <label for="res">Screen size</label>
-          <select id="res">
+    <details>
+      <summary><span class="n">04</span> Weekday labels</summary>
+      <div class="body">
+        <label class="tog f"><input type="checkbox" data-p="week.on"> Align to weeks (locks the grid to 7 columns)</label>
+        <div class="grid2 f">
+          <div><label for="wset">Label set</label>
+            <select id="wset" data-p="week.set">
+              <option value="en">S M T W T F S</option>
+              <option value="en2">Su Mo Tu We Th Fr Sa</option>
+              <option value="ko">일 월 화 수 목 금 토</option>
+            </select></div>
+          <div><label for="wstart">Week starts on</label>
+            <select id="wstart" data-p="week.start"><option value="0">Sunday</option><option value="1">Monday</option></select></div>
+        </div>
+        <div class="grid2 f">
+          <div><label>Label size<span class="val" data-v="week.size">px</span></label><input type="range" min="12" max="90" data-p="week.size"></div>
+          <label class="sw" style="align-self:end"><input type="color" data-p="week.color"><span>Label color</span></label>
+        </div>
+      </div>
+    </details>
+
+    <details>
+      <summary><span class="n">05</span> Checkpoints</summary>
+      <div class="body"><div id="hlList"></div>
+        <div class="btns"><button class="act" id="addHl" type="button">Add checkpoint</button></div>
+        <p class="hint">Rings a single day or a range. Each one has its own thickness and gap.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary><span class="n">06</span> Text</summary>
+      <div class="body"><div id="txtList"></div>
+        <div class="btns"><button class="act" id="addTxt" type="button">Add text</button></div>
+        <p class="hint">Tokens work here too: {done} {total} {left} {pct} {date}</p>
+      </div>
+    </details>
+
+    <details>
+      <summary><span class="n">07</span> Progress readout</summary>
+      <div class="body">
+        <label class="tog f"><input type="checkbox" data-p="stat.on"> Show progress text on the wallpaper</label>
+        <div class="f"><label for="sfmt">Format</label><input type="text" id="sfmt" data-p="stat.fmt"></div>
+        <div class="grid2 f">
+          <div><label for="sfont">Font</label><select id="sfont" data-p="stat.font" data-fonts></select></div>
+          <div><label>Size<span class="val" data-v="stat.size">px</span></label><input type="range" min="16" max="200" data-p="stat.size"></div>
+        </div>
+        <div class="grid3 f">
+          <div><label>Horizontal<span class="val" data-v="stat.x">%</span></label><input type="range" min="0" max="100" step="0.5" data-p="stat.x"></div>
+          <div><label>Vertical<span class="val" data-v="stat.y">%</span></label><input type="range" min="0" max="100" step="0.5" data-p="stat.y"></div>
+          <label class="sw" style="align-self:end"><input type="color" data-p="stat.c"><span>Color</span></label>
+        </div>
+        <div class="btns">
+          <label class="tog"><input type="checkbox" data-p="stat.b"> Bold</label>
+          <label class="tog"><input type="checkbox" data-p="stat.i"> Italic</label>
+        </div>
+      </div>
+    </details>
+
+    <details>
+      <summary><span class="n">08</span> Background image</summary>
+      <div class="body">
+        <div class="f"><label for="bgf">Choose a file</label><input type="file" id="bgf" accept="image/*"></div>
+        <div class="f"><label for="bgu">Or paste an image URL</label><input type="url" id="bgu" data-p="bgi.url" placeholder="https://…"></div>
+        <div class="grid2 f">
+          <div><label for="bgfit">Fit</label><select id="bgfit" data-p="bgi.fit"><option value="cover">Cover</option><option value="contain">Contain</option><option value="fill">Stretch</option></select></div>
+          <div><label>Opacity<span class="val" data-v="bgi.op">%</span></label><input type="range" min="0" max="100" data-p="bgi.op"></div>
+        </div>
+        <p class="hint warn">A chosen file shows in the preview and in the downloaded PNG, but the daily Shortcut can't reach your phone's storage. For the live wallpaper, commit the image into your repo and paste its public URL above.</p>
+      </div>
+    </details>
+
+    <details open>
+      <summary><span class="n">09</span> Export &amp; Shortcut</summary>
+      <div class="body">
+        <div class="f"><label for="size">Screen size</label>
+          <select id="size" data-p="size">
             <option value="1290x2796">6.7" Pro Max / Plus — 1290 × 2796</option>
+            <option value="1320x2868">6.9" 16 Pro Max — 1320 × 2868</option>
+            <option value="1206x2622">6.3" 16 Pro — 1206 × 2622</option>
             <option value="1179x2556">6.1" Pro — 1179 × 2556</option>
-            <option value="1206x2622">6.3" Pro (16 Pro) — 1206 × 2622</option>
-            <option value="1320x2868">6.9" Pro Max (16 Pro Max) — 1320 × 2868</option>
-            <option value="1170x2532">6.1" (12–14) — 1170 × 2532</option>
-            <option value="1125x2436">5.8" (X–11 Pro) — 1125 × 2436</option>
-          </select>
+            <option value="1170x2532">6.1" 12–14 — 1170 × 2532</option>
+            <option value="1125x2436">5.8" X–11 Pro — 1125 × 2436</option>
+          </select></div>
+        <div class="btns">
+          <button class="pri" id="dl" type="button">Download PNG</button>
+          <button class="act" id="copy" type="button">Copy Shortcut URL</button>
+          <button class="act" id="test" type="button">Open image</button>
+          <button class="act" id="reset" type="button">Reset all</button>
         </div>
+        <div class="f"><code class="url" id="urlOut"></code></div>
+        <ol class="steps">
+          <li><b>Get Contents of URL</b> → paste the URL above.</li>
+          <li><b>Convert Image</b> → Contents of URL → <b>PNG</b>.</li>
+          <li><b>Set Wallpaper</b> → Converted Image → Lock Screen, with <b>Preview off</b>.</li>
+          <li>Automations → <b>Time of Day</b> → 00:00 daily → Run Immediately.</li>
+        </ol>
       </div>
-      <div class="btns">
-        <button class="primary" id="dl" type="button">Download PNG</button>
-        <button class="action" id="copy" type="button">Copy Shortcut URL</button>
-        <button class="action" id="save" type="button">Save settings</button>
-      </div>
-    </fieldset>
-
-    <fieldset>
-      <legend>Apple Shortcut</legend>
-      <code class="url" id="urlOut"></code>
-      <ol class="steps">
-        <li>New shortcut → <b>Get Contents of URL</b> → paste the URL above.</li>
-        <li><b>Convert Image</b> → Contents of URL → to <b>PNG</b>.</li>
-        <li><b>Set Wallpaper</b> → Converted Image → Lock Screen. Open the arrow and turn <b>Preview</b> off.</li>
-        <li>Automations tab → <b>Time of Day</b> → 00:00, Daily → Run Immediately, notification off.</li>
-      </ol>
-      <p class="hint">The Text action in your screenshot isn't needed — delete it and put the URL straight into Get Contents of URL.</p>
-    </fieldset>
+    </details>
 
   </div>
 </div>
 
 <script>
 (() => {
-  const $ = id => document.getElementById(id);
-  const cv = $('cv'), ctx = cv.getContext('2d');
-  const DAY = 86400000;
+const $ = s => document.querySelector(s);
+const cv = $('#cv'), ctx = cv.getContext('2d');
+const DAY = 86400000;
+const FONTS = ['Inter','Roboto','Noto Sans','Noto Sans KR','Playfair Display','JetBrains Mono','Lora','Oswald'];
+const LABELS = {en:['S','M','T','W','T','F','S'], en2:['Su','Mo','Tu','We','Th','Fr','Sa'], ko:['일','월','화','수','목','금','토']};
 
-  const els = ['start','end','today','cBg','cPast','cLeft','cToday','shape','fill','top','bottom','side','res'];
-  let highlights = [];
+/* ---------- state ---------- */
+const fresh = () => {
+  const y = new Date().getFullYear();
+  return {
+    s:`${y}-01-01`, e:`${y}-12-31`, size:'1290x2796',
+    tzA:9, tzB:8, tzUse:'A',
+    col:{bg:'#000000', past:'#ffffff', left:'#2e2e33', today:'#ff9f0a'},
+    dot:{shape:'circle', fill:62},
+    pad:{t:27, b:22, x:8},
+    off:{x:0, y:0},
+    week:{on:false, start:0, set:'en', size:34, color:'#8a8a90'},
+    bgi:{url:'', fit:'cover', op:100},
+    stat:{on:false, fmt:'{done} / {total}  ·  {pct}', font:'Inter', size:44, b:0, i:0, c:'#ffffff', x:50, y:88},
+    txt:[], hl:[]
+  };
+};
+let S = fresh();
+let bgLocal = null, bgImg = null;
 
-  /* ---------- date helpers (UTC-safe, no timezone drift) ---------- */
-  const toKey = d => d.toISOString().slice(0,10);
-  const parse  = s => { const [y,m,d] = s.split('-').map(Number); return Date.UTC(y, m-1, d); };
-  const daysBetween = (a,b) => Math.round((b-a)/DAY);
+const get = p => p.split('.').reduce((o,k) => o?.[k], S);
+const set = (p,v) => { const k = p.split('.'); const last = k.pop(); k.reduce((o,x)=>o[x], S)[last] = v; };
 
-  /* ---------- defaults ---------- */
-  function defaults(){
-    const now = new Date();
-    const s = new Date(Date.UTC(now.getFullYear(), 0, 1));
-    const e = new Date(Date.UTC(now.getFullYear(), 11, 31));
-    $('start').value = toKey(s);
-    $('end').value   = toKey(e);
-    $('today').value = toKey(new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())));
-  }
+/* ---------- dates ---------- */
+const key = d => d.toISOString().slice(0,10);
+const parse = s => { const [y,m,d] = String(s).split('-').map(Number); return Date.UTC(y,m-1,d); };
+const between = (a,b) => Math.round((b-a)/DAY);
+const nowInZone = tz => { const t = new Date(Date.now() + tz*3600000);
+  return Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate()); };
 
-  /* ---------- layout solver ----------
-     Picks the column count that lets the dots be as large as possible
-     while every dot still fits inside the clear-zone rectangle. */
-  function solve(n, w, h){
-    let best = {pitch:0, cols:1, rows:n};
-    for (let cols = 1; cols <= n; cols++){
-      const rows  = Math.ceil(n/cols);
-      const pitch = Math.min(w/cols, h/rows);
-      if (pitch > best.pitch) best = {pitch, cols, rows};
+/* ---------- persistence ---------- */
+const save = () => {
+  localStorage.setItem('onedot.v2', JSON.stringify({S, bgLocal}));
+  const el = $('#saved'); el.textContent = 'Saved';
+  clearTimeout(save.t); save.t = setTimeout(()=> el.textContent = 'Settings save automatically', 1200);
+};
+const restore = () => {
+  try {
+    const r = JSON.parse(localStorage.getItem('onedot.v2') || 'null');
+    if (!r) return;
+    S = Object.assign(fresh(), r.S);
+    bgLocal = r.bgLocal || null;
+  } catch {}
+};
+
+/* ---------- layout (mirrors the server) ---------- */
+function solve(n,w,h){
+  let best = {pitch:0, cols:1, rows:n};
+  for (let c=1;c<=n;c++){ const r = Math.ceil(n/c), p = Math.min(w/c, h/r); if (p>best.pitch) best={pitch:p,cols:c,rows:r}; }
+  return best;
+}
+function layout(W,H,n){
+  const areaX=W*S.pad.x/100, areaW=W*(1-2*S.pad.x/100);
+  const areaY=H*S.pad.t/100, areaH=H*(1-S.pad.t/100-S.pad.b/100);
+  const labelH = S.week.on ? S.week.size*1.9 : 0;
+  let cols,rows,pitch,lead=0;
+  if (S.week.on){
+    cols=7; lead=(new Date(parse(S.s)).getUTCDay()-Number(S.week.start)+7)%7;
+    rows=Math.ceil((lead+n)/7); pitch=Math.min(areaW/7,(areaH-labelH)/rows);
+  } else { const r=solve(n,areaW,areaH); cols=r.cols; rows=r.rows; pitch=r.pitch; }
+  const gridW=cols*pitch, gridH=rows*pitch+labelH;
+  return {cols,rows,pitch,lead,labelH,gridW,
+    ox: areaX+(areaW-gridW)/2 + W*S.off.x/100,
+    oy: areaY+(areaH-gridH)/2 + H*S.off.y/100};
+}
+
+function path(x,y,r,shape){
+  ctx.beginPath();
+  if (shape==='circle') ctx.arc(x,y,r,0,Math.PI*2);
+  else if (shape==='square') ctx.rect(x-r,y-r,r*2,r*2);
+  else if (shape==='squircle') ctx.roundRect(x-r,y-r,r*2,r*2,r*0.42);
+  else { ctx.moveTo(x,y-r); ctx.lineTo(x+r,y); ctx.lineTo(x,y+r); ctx.lineTo(x-r,y); ctx.closePath(); }
+}
+
+const fmt = (str,done,n,today) => String(str)
+  .replace(/{done}/g,done).replace(/{total}/g,n).replace(/{left}/g,n-done)
+  .replace(/{pct}/g,(done/n*100).toFixed(1)+'%')
+  .replace(/{date}/g,new Date(today).toISOString().slice(0,10));
+
+function drawText(t,W,H,done,n,today){
+  ctx.save();
+  ctx.font = `${t.i?'italic ':''}${t.b?700:400} ${t.size}px "${t.font}", Inter, sans-serif`;
+  ctx.fillStyle = t.c; ctx.textAlign='center'; ctx.textBaseline='top';
+  ctx.fillText(fmt(t.s,done,n,today), W/2 + (t.x-50)/100*W, t.y/100*H);
+  ctx.restore();
+}
+
+/* ---------- render ---------- */
+function render(){
+  const [W,H] = S.size.split('x').map(Number);
+  if (cv.width!==W){ cv.width=W; cv.height=H; }
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = S.col.bg; ctx.fillRect(0,0,W,H);
+
+  if (bgImg && bgImg.complete && bgImg.naturalWidth){
+    ctx.save(); ctx.globalAlpha = S.bgi.op/100;
+    const ir = bgImg.naturalWidth/bgImg.naturalHeight, cr = W/H;
+    let dw=W, dh=H, dx=0, dy=0;
+    if (S.bgi.fit!=='fill'){
+      const bigger = S.bgi.fit==='cover' ? ir<cr : ir>cr;
+      if (bigger){ dw=W; dh=W/ir; } else { dh=H; dw=H*ir; }
+      dx=(W-dw)/2; dy=(H-dh)/2;
     }
-    return best;
+    ctx.drawImage(bgImg,dx,dy,dw,dh); ctx.restore();
   }
 
-  /* ---------- shapes ---------- */
-  function dot(x, y, r, shape, color){
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    if (shape === 'circle')        ctx.arc(x, y, r, 0, Math.PI*2);
-    else if (shape === 'square')   ctx.rect(x-r, y-r, r*2, r*2);
-    else if (shape === 'squircle') ctx.roundRect(x-r, y-r, r*2, r*2, r*0.42);
-    else { ctx.moveTo(x,y-r); ctx.lineTo(x+r,y); ctx.lineTo(x,y+r); ctx.lineTo(x-r,y); ctx.closePath(); }
-    ctx.fill();
+  const start=parse(S.s), end=parse(S.e);
+  const n = between(start,end)+1;
+  if (!(n>0)){ $('#r1').textContent='End date must come after the start date.'; return; }
+
+  const today = $('#pv').value ? parse($('#pv').value) : nowInZone(Number(S.tzUse==='A'?S.tzA:S.tzB));
+  const passed = Math.min(Math.max(between(start,today),-1), n);
+  const done = Math.min(Math.max(passed+1,0), n);
+
+  const L = layout(W,H,n);
+  const d = L.pitch*S.dot.fill/100;
+
+  if (S.week.on){
+    const set = LABELS[S.week.set]||LABELS.en;
+    ctx.save();
+    ctx.font = `400 ${S.week.size}px Inter, "Noto Sans KR", sans-serif`;
+    ctx.fillStyle = S.week.color; ctx.textAlign='center'; ctx.textBaseline='middle';
+    for (let k=0;k<7;k++)
+      ctx.fillText(set[(k+Number(S.week.start))%7], L.ox+k*L.pitch+L.pitch/2, L.oy+L.labelH/2);
+    ctx.restore();
   }
 
-  function ring(x, y, r, shape, color, lw){
-    ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.beginPath();
-    if (shape === 'circle')        ctx.arc(x, y, r, 0, Math.PI*2);
-    else if (shape === 'square')   ctx.rect(x-r, y-r, r*2, r*2);
-    else if (shape === 'squircle') ctx.roundRect(x-r, y-r, r*2, r*2, r*0.42);
-    else { ctx.moveTo(x,y-r); ctx.lineTo(x+r,y); ctx.lineTo(x,y+r); ctx.lineTo(x-r,y); ctx.closePath(); }
-    ctx.stroke();
-  }
-
-  /* ---------- render ---------- */
-  function render(){
-    const [W,H] = $('res').value.split('x').map(Number);
-    if (cv.width !== W){ cv.width = W; cv.height = H; }
-
-    const s = parse($('start').value), e = parse($('end').value), t = parse($('today').value);
-    const bg = $('cBg').value;
-    ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
-
-    const n = daysBetween(s,e) + 1;
-    if (!(n > 0)){ $('stat').textContent = 'End date must come after the start date.'; return; }
-
-    const topPct = +$('top').value/100, botPct = +$('bottom').value/100, sidePct = +$('side').value/100;
-    const areaX = W*sidePct, areaW = W*(1-2*sidePct);
-    const areaY = H*topPct,  areaH = H*(1-topPct-botPct);
-
-    const {pitch, cols, rows} = solve(n, areaW, areaH);
-    const r = pitch * (+$('fill').value/100) / 2;
-    const gridW = cols*pitch, gridH = rows*pitch;
-    const ox = areaX + (areaW-gridW)/2, oy = areaY + (areaH-gridH)/2;
-
-    const passed = Math.min(Math.max(daysBetween(s,t), -1), n);
-    const ringW  = Math.max(1.5, pitch*0.075);
-    const ringR  = r + ringW*1.6;
-
-    for (let i = 0; i < n; i++){
-      const cx = ox + (i%cols)*pitch + pitch/2;
-      const cy = oy + Math.floor(i/cols)*pitch + pitch/2;
-      const color = i < passed ? $('cPast').value
-                  : i === passed ? $('cToday').value
-                  : $('cLeft').value;
-      dot(cx, cy, r, $('shape').value, color);
-
-      for (const h of highlights){
-        if (!h.from || !h.to) continue;
-        const a = daysBetween(s, parse(h.from)), b = daysBetween(s, parse(h.to));
-        if (i >= Math.min(a,b) && i <= Math.max(a,b)) ring(cx, cy, ringR, $('shape').value, h.color, ringW);
-      }
-    }
-
-    const done = Math.min(Math.max(passed+1,0), n);
-    $('stat').innerHTML = `<b>${done}</b> of <b>${n}</b> days · <b>${(done/n*100).toFixed(1)}%</b> · ${cols}×${rows} grid`;
-    buildUrl();
-  }
-
-  /* ---------- checkpoints UI ---------- */
-  function drawHl(){
-    const box = $('hlList'); box.innerHTML = '';
-    highlights.forEach((h,i) => {
-      const row = document.createElement('div'); row.className = 'hl';
-      row.innerHTML = `
-        <div><label>From</label><input type="date" value="${h.from}"></div>
-        <div><label>To</label><input type="date" value="${h.to}"></div>
-        <input type="color" value="${h.color}" aria-label="Ring color">
-        <button class="x" type="button" aria-label="Remove checkpoint">×</button>`;
-      const [f,t,c] = row.querySelectorAll('input');
-      f.oninput = ev => { h.from = ev.target.value; render(); };
-      t.oninput = ev => { h.to   = ev.target.value; render(); };
-      c.oninput = ev => { h.color = ev.target.value; render(); };
-      row.querySelector('.x').onclick = () => { highlights.splice(i,1); drawHl(); render(); };
-      box.appendChild(row);
-    });
-  }
-
-  $('addHl').onclick = () => {
-    const d = $('today').value;
-    highlights.push({from:d, to:d, color:'#30d158'});
-    drawHl(); render();
-  };
-
-  /* ---------- shortcut URL ---------- */
-  const ENDPOINT = location.origin + location.pathname.replace(/\/[^\/]*$/, '') + '/api/wallpaper';
-  function params(){
-    const p = new URLSearchParams({
-      start: $('start').value, end: $('end').value,
-      bg: $('cBg').value.slice(1), past: $('cPast').value.slice(1),
-      left: $('cLeft').value.slice(1), today: $('cToday').value.slice(1),
-      shape: $('shape').value, fill: $('fill').value,
-      top: $('top').value, bottom: $('bottom').value, side: $('side').value,
-      size: $('res').value
-    });
-    highlights.filter(h => h.from && h.to)
-      .forEach(h => p.append('hl', `${h.from}:${h.to}:${h.color.slice(1)}`));
-    return p;
-  }
-  function buildUrl(){ $('urlOut').textContent = ENDPOINT + '?' + params().toString(); }
-
-  /* ---------- actions ---------- */
-  $('dl').onclick = () => {
-    const a = document.createElement('a');
-    a.download = `onedot-${$('start').value}-to-${$('end').value}.png`;
-    a.href = cv.toDataURL('image/png'); a.click();
-  };
-  $('copy').onclick = async e => {
-    await navigator.clipboard.writeText($('urlOut').textContent);
-    e.target.textContent = 'Copied'; setTimeout(()=> e.target.textContent = 'Copy Shortcut URL', 1400);
-  };
-  $('save').onclick = e => {
-    const st = {highlights}; els.forEach(k => st[k] = $(k).value);
-    localStorage.setItem('onedot', JSON.stringify(st));
-    e.target.textContent = 'Saved'; setTimeout(()=> e.target.textContent = 'Save settings', 1400);
-  };
-
-  function load(){
-    const raw = localStorage.getItem('onedot');
-    if (!raw) return false;
-    try {
-      const st = JSON.parse(raw);
-      els.forEach(k => { if (st[k] != null) $(k).value = st[k]; });
-      highlights = st.highlights || [];
-      return true;
-    } catch { return false; }
-  }
-
-  /* ---------- boot ---------- */
-  defaults();
-  load();
-  ['fill','top','bottom','side'].forEach(k => {
-    const out = $(k+'V');
-    const sync = () => out.textContent = $(k).value + '%';
-    $(k).addEventListener('input', sync); sync();
+  const ringFor = i => S.hl.find(h => {
+    if (!h.f||!h.t) return false;
+    const a=between(start,parse(h.f)), b=between(start,parse(h.t));
+    return i>=Math.min(a,b) && i<=Math.max(a,b);
   });
-  els.forEach(k => $(k).addEventListener('input', render));
-  drawHl();
-  render();
+
+  for (let i=0;i<n;i++){
+    const idx = L.lead+i;
+    const cx = L.ox + (idx%L.cols)*L.pitch + L.pitch/2;
+    const cy = L.oy + L.labelH + Math.floor(idx/L.cols)*L.pitch + L.pitch/2;
+    ctx.fillStyle = i<passed ? S.col.past : i===passed ? S.col.today : S.col.left;
+    path(cx,cy,d/2,S.dot.shape); ctx.fill();
+    const hit = ringFor(i);
+    if (hit){
+      const rw = Math.max(1,(hit.w??7.5)/100*L.pitch), gap=(hit.g??8)/100*L.pitch;
+      ctx.strokeStyle=hit.c; ctx.lineWidth=rw;
+      path(cx,cy,d/2+gap+rw/2,S.dot.shape); ctx.stroke();
+    }
+  }
+
+  for (const t of S.txt) drawText(t,W,H,done,n,today);
+  if (S.stat.on) drawText({...S.stat, s:S.stat.fmt},W,H,done,n,today);
+
+  $('#barFill').style.width = (done/n*100)+'%';
+  $('#r1').textContent = `${done} / ${n} days   ${(done/n*100).toFixed(1)}%`;
+  $('#r2').textContent = `${L.cols} x ${L.rows} grid   pitch ${L.pitch.toFixed(1)}px   ${n-done} left`;
+  buildUrl();
+}
+
+/* ---------- shortcut url ---------- */
+function encode(o){
+  const bytes = new TextEncoder().encode(JSON.stringify(o));
+  let bin=''; bytes.forEach(b => bin += String.fromCharCode(b));
+  return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function payload(){
+  const {tzA,tzB,tzUse,...rest} = S;
+  return {...rest, tz:Number(tzUse==='A'?tzA:tzB), v:2};
+}
+function endpoint(){
+  return location.protocol==='file:'
+    ? 'https://YOUR-PROJECT.vercel.app/api/wallpaper'
+    : location.origin + location.pathname.replace(/\/[^\/]*$/,'') + '/api/wallpaper';
+}
+function buildUrl(){ $('#urlOut').textContent = endpoint()+'?c='+encode(payload()); }
+
+/* ---------- repeatable rows ---------- */
+function fontSelect(v){
+  return `<select>${FONTS.map(f=>`<option${f===v?' selected':''}>${f}</option>`).join('')}</select>`;
+}
+function drawHl(){
+  const box=$('#hlList'); box.innerHTML='';
+  S.hl.forEach((h,i)=>{
+    const c=document.createElement('div'); c.className='card';
+    c.innerHTML=`<div class="top"><strong>Checkpoint ${i+1}</strong><button class="x" type="button" aria-label="Remove">×</button></div>
+      <div class="grid2"><div><label>From</label><input type="date" value="${h.f}"></div>
+      <div><label>To</label><input type="date" value="${h.t}"></div></div>
+      <div class="grid3 f"><div><label>Thickness<span class="val">${h.w}</span></label><input type="range" min="1" max="30" step="0.5" value="${h.w}"></div>
+      <div><label>Gap<span class="val">${h.g}</span></label><input type="range" min="0" max="40" step="0.5" value="${h.g}"></div>
+      <label class="sw" style="align-self:end"><input type="color" value="${h.c}"><span>Ring</span></label></div>`;
+    const [f,t,w,g,col]=c.querySelectorAll('input');
+    f.oninput=e=>{h.f=e.target.value;commit()};
+    t.oninput=e=>{h.t=e.target.value;commit()};
+    w.oninput=e=>{h.w=+e.target.value;e.target.parentElement.querySelector('.val').textContent=h.w;render();save()};
+    g.oninput=e=>{h.g=+e.target.value;e.target.parentElement.querySelector('.val').textContent=h.g;render();save()};
+    col.oninput=e=>{h.c=e.target.value;render();save()};
+    c.querySelector('.x').onclick=()=>{S.hl.splice(i,1);drawHl();commit()};
+    box.appendChild(c);
+  });
+}
+function drawTxt(){
+  const box=$('#txtList'); box.innerHTML='';
+  S.txt.forEach((t,i)=>{
+    const c=document.createElement('div'); c.className='card';
+    c.innerHTML=`<div class="top"><strong>Text ${i+1}</strong><button class="x" type="button" aria-label="Remove">×</button></div>
+      <div><label>Content</label><input type="text" value="${t.s.replace(/"/g,'&quot;')}"></div>
+      <div class="grid2 f"><div><label>Font</label>${fontSelect(t.font)}</div>
+      <div><label>Size<span class="val">${t.size}</span></label><input type="range" min="12" max="240" value="${t.size}"></div></div>
+      <div class="grid3 f"><div><label>Horizontal<span class="val">${t.x}</span></label><input type="range" min="0" max="100" step="0.5" value="${t.x}"></div>
+      <div><label>Vertical<span class="val">${t.y}</span></label><input type="range" min="0" max="100" step="0.5" value="${t.y}"></div>
+      <label class="sw" style="align-self:end"><input type="color" value="${t.c}"><span>Color</span></label></div>
+      <div class="btns"><label class="tog"><input type="checkbox"${t.b?' checked':''}> Bold</label>
+      <label class="tog"><input type="checkbox"${t.i?' checked':''}> Italic</label></div>`;
+    const q=c.querySelectorAll('input,select');
+    const [body,fsel,size,x,y,color,bold,ital]=[q[0],c.querySelector('select'),q[1],q[2],q[3],q[4],q[5],q[6]];
+    body.oninput=e=>{t.s=e.target.value;render();save()};
+    fsel.oninput=e=>{t.font=e.target.value;render();save()};
+    size.oninput=e=>{t.size=+e.target.value;e.target.parentElement.querySelector('.val').textContent=t.size;render();save()};
+    x.oninput=e=>{t.x=+e.target.value;e.target.parentElement.querySelector('.val').textContent=t.x;render();save()};
+    y.oninput=e=>{t.y=+e.target.value;e.target.parentElement.querySelector('.val').textContent=t.y;render();save()};
+    color.oninput=e=>{t.c=e.target.value;render();save()};
+    bold.onchange=e=>{t.b=e.target.checked?1:0;render();save()};
+    ital.onchange=e=>{t.i=e.target.checked?1:0;render();save()};
+    c.querySelector('.x').onclick=()=>{S.txt.splice(i,1);drawTxt();commit()};
+    box.appendChild(c);
+  });
+}
+
+/* ---------- binding ---------- */
+function paint(){
+  document.querySelectorAll('[data-p]').forEach(el=>{
+    const v=get(el.dataset.p);
+    if (el.type==='checkbox') el.checked=!!v; else el.value=v;
+  });
+  document.querySelectorAll('[data-v]').forEach(el=>{
+    el.textContent = get(el.dataset.v)+el.textContent.replace(/^[-\d.]*/,'').slice(-2).replace(/[^%px]/g,'');
+  });
+  document.querySelectorAll('[data-fonts]').forEach(el=>{
+    const v=get(el.dataset.p);
+    el.innerHTML=FONTS.map(f=>`<option${f===v?' selected':''}>${f}</option>`).join('');
+  });
+}
+function syncVals(){
+  document.querySelectorAll('[data-v]').forEach(el=>{
+    const raw=el.textContent, unit=raw.endsWith('px')?'px':raw.endsWith('%')?'%':'';
+    el.textContent=get(el.dataset.v)+unit;
+  });
+}
+function commit(){ render(); save(); }
+
+document.addEventListener('input', e=>{
+  const p=e.target.dataset?.p; if (!p) return;
+  let v = e.target.type==='checkbox' ? e.target.checked
+        : e.target.type==='range' ? +e.target.value : e.target.value;
+  if (p==='week.start'||p==='tzA'||p==='tzB') v=Number(v);
+  if (p==='stat.b'||p==='stat.i') v=v?1:0;
+  set(p,v);
+  if (p==='bgi.url'){ loadBg(v); return; }
+  syncVals(); commit();
+});
+$('#pv').addEventListener('input', render);
+
+$('#addHl').onclick=()=>{ const d=$('#pv').value||S.s;
+  S.hl.push({f:d,t:d,c:'#6ee7c8',w:8,g:8}); drawHl(); commit(); };
+$('#addTxt').onclick=()=>{ S.txt.push({s:'Focus',font:'Inter',size:56,b:1,i:0,c:'#ffffff',x:50,y:12}); drawTxt(); commit(); };
+
+/* ---------- background image ---------- */
+function loadBg(src){
+  if (!src){ bgImg=null; commit(); return; }
+  const im=new Image(); im.crossOrigin='anonymous';
+  im.onload=()=>{ bgImg=im; render(); };
+  im.onerror=()=>{ bgImg=null; render(); };
+  im.src=src;
+}
+$('#bgf').onchange=e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ bgLocal=r.result; loadBg(bgLocal); save(); };
+  r.readAsDataURL(f);
+};
+
+/* ---------- actions ---------- */
+$('#dl').onclick=()=>{ const a=document.createElement('a');
+  a.download=`onedot-${S.s}-${S.e}.png`; a.href=cv.toDataURL('image/png'); a.click(); };
+$('#copy').onclick=async e=>{ await navigator.clipboard.writeText($('#urlOut').textContent);
+  e.target.textContent='Copied'; setTimeout(()=>e.target.textContent='Copy Shortcut URL',1300); };
+$('#test').onclick=()=>window.open($('#urlOut').textContent,'_blank');
+$('#reset').onclick=()=>{ if(!confirm('Reset every setting?')) return;
+  localStorage.removeItem('onedot.v2'); S=fresh(); bgLocal=null; bgImg=null;
+  paint(); drawHl(); drawTxt(); render(); };
+
+/* ---------- boot ---------- */
+restore();
+paint(); syncVals(); drawHl(); drawTxt();
+$('#pv').value = '';
+$('#pv').placeholder = 'today';
+if (bgLocal) loadBg(bgLocal); else if (S.bgi.url) loadBg(S.bgi.url);
+render();
+document.fonts.ready.then(render);
 })();
 </script>
 </body>
