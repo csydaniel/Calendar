@@ -112,8 +112,22 @@ export default async function handler(req, res) {
   const t0 = Date.now();
   const mark = {};
   try {
-    const q = new URL(req.url || '/', 'http://localhost').searchParams;
-    const c = q.get('c') ? decode(q.get('c')) : { s: '2026-01-01', e: '2026-12-31' };
+    const q = req.query && Object.keys(req.query).length
+      ? new URLSearchParams(req.query)
+      : new URL(req.url || '/', 'http://localhost').searchParams;
+
+    // A truncated or mangled code must fail loudly. Silently drawing defaults
+    // looks like "my settings were ignored" and hides the real problem.
+    let c = { s: '2026-01-01', e: '2026-12-31' };
+    const rawC = q.get('c');
+    if (rawC) {
+      try { c = decode(rawC); }
+      catch {
+        return send(res, 400, 'text/plain',
+          'The config code in this URL is incomplete or damaged (' + rawC.length +
+          ' characters received). Copy the Shortcut URL again with the Copy button rather than by selecting the text.');
+      }
+    }
 
     const col   = { bg: '#000000', past: '#ffffff', left: '#2e2e33', today: '#ff9f0a', ...(c.col || {}) };
     const dot   = { shape: 'circle', fill: 62, ...(c.dot || {}) };
@@ -264,6 +278,7 @@ export default async function handler(req, res) {
     }
 
     res.setHeader('x-render-ms', String(Date.now() - t0));
+    res.setHeader('x-config', rawC ? 'applied' : 'defaults');
     return send(res, 200, 'image/png', png);
   } catch (err) {
     return send(res, 500, 'text/plain',
