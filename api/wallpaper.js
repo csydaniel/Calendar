@@ -1,8 +1,5 @@
 import https from 'node:https';
-import opentype from 'opentype.js';
 import { Surface, encodePNG, decodePNG, pathToPolys } from './_render.js';
-
-export const config = { runtime: 'nodejs', maxDuration: 60 };
 
 const DAY = 86400000;
 const FONT_CACHE = new Map();
@@ -82,6 +79,7 @@ async function loadFont(family, weight, italic) {
   if (!m) throw new Error('no ttf for ' + family);
 
   const buf = await grab(m[1], 3000);
+  const opentype = (await import('opentype.js')).default;
   const font = opentype.parse(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength));
   FONT_CACHE.set(key, font);
   return font;
@@ -101,11 +99,20 @@ function decode(raw) {
   return JSON.parse(Buffer.from(pad, 'base64').toString('utf8'));
 }
 
-export default async function handler(req) {
+/** Vercel's Node runtime gives (req, res); the response must be written here. */
+function send(res, status, type, body) {
+  res.statusCode = status;
+  res.setHeader('Content-Type', type);
+  res.setHeader('Content-Length', Buffer.byteLength(body));
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+  res.end(body);
+}
+
+export default async function handler(req, res) {
   const t0 = Date.now();
   const mark = {};
   try {
-    const q = new URL(req.url, 'http://localhost').searchParams;
+    const q = new URL(req.url || '/', 'http://localhost').searchParams;
     const c = q.get('c') ? decode(q.get('c')) : { s: '2026-01-01', e: '2026-12-31' };
 
     const col   = { bg: '#000000', past: '#ffffff', left: '#2e2e33', today: '#ff9f0a', ...(c.col || {}) };
@@ -134,11 +141,11 @@ export default async function handler(req) {
     const done = Math.min(Math.max(passed + 1, 0), n);
 
     if (q.get('debug')) {
-      return new Response(JSON.stringify({
+      return send(res, 200, 'application/json', JSON.stringify({
         ok: true, n, done, tz, size: [W, H],
         serverNowUTC: new Date().toISOString(),
         cachedFonts: [...FONT_CACHE.keys()], config: c,
-      }, null, 2), { headers: { 'content-type': 'application/json' } });
+      }, null, 2));
     }
 
     const fmt = s => String(s)
@@ -251,23 +258,15 @@ export default async function handler(req) {
     mark.encode = Date.now() - t0;
 
     if (q.get('timing')) {
-      return new Response(JSON.stringify({
-        marks: mark, bytes: png.length, days: n,
-        fonts: [...loaded.keys()],
-      }, null, 2), { headers: { 'content-type': 'application/json' } });
+      return send(res, 200, 'application/json', JSON.stringify({
+        marks: mark, bytes: png.length, days: n, fonts: [...loaded.keys()],
+      }, null, 2));
     }
 
-    return new Response(png, {
-      headers: {
-        'content-type': 'image/png',
-        'content-length': String(png.length),
-        'cache-control': 'no-store, no-cache, must-revalidate, max-age=0',
-        'x-render-ms': String(Date.now() - t0),
-      },
-    });
+    res.setHeader('x-render-ms', String(Date.now() - t0));
+    return send(res, 200, 'image/png', png);
   } catch (err) {
-    return new Response('Wallpaper error after ' + (Date.now() - t0) + 'ms: ' + (err?.stack || String(err)), {
-      status: 500, headers: { 'content-type': 'text/plain' },
-    });
+    return send(res, 500, 'text/plain',
+      'Wallpaper error after ' + (Date.now() - t0) + 'ms: ' + (err?.stack || String(err)));
   }
 }
