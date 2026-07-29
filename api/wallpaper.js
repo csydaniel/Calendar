@@ -1,4 +1,5 @@
 import https from 'node:https';
+import { readConfig } from './config.js';
 import { Surface, encodePNG, decodePNG, pathToPolys } from './_render.js';
 
 const DAY = 86400000;
@@ -118,9 +119,21 @@ export default async function handler(req, res) {
 
     // A truncated or mangled code must fail loudly. Silently drawing defaults
     // looks like "my settings were ignored" and hides the real problem.
-    let c = { s: '2026-01-01', e: '2026-12-31' };
+    let c = null;
+    let source = 'defaults';
     const rawC = q.get('c');
+
+    // No code in the URL: fall back to whatever was last saved on the site, so
+    // the plain /api/wallpaper address stays correct forever.
+    if (!rawC) {
+      try {
+        const saved = await readConfig();
+        if (saved?.config?.image) { c = saved.config.image; source = 'stored'; }
+      } catch { /* storage not configured; defaults are fine */ }
+    }
+    if (!c) c = { s: '2026-01-01', e: '2026-12-31' };
     if (rawC) {
+      source = 'url';
       try { c = decode(rawC); }
       catch {
         return send(res, 400, 'text/plain',
@@ -278,7 +291,7 @@ export default async function handler(req, res) {
     }
 
     res.setHeader('x-render-ms', String(Date.now() - t0));
-    res.setHeader('x-config', rawC ? 'applied' : 'defaults');
+    res.setHeader('x-config', source);
     return send(res, 200, 'image/png', png);
   } catch (err) {
     return send(res, 500, 'text/plain',
