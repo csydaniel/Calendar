@@ -29,6 +29,7 @@
   .phone{position:relative;width:min(292px,74vw);aspect-ratio:1290/2796;border-radius:46px;padding:7px;
     background:linear-gradient(155deg,#43434c,#101014 38%,#43434c);box-shadow:0 40px 80px -28px #000,0 0 0 1px #2b2b33}
   .phone canvas{width:100%;height:100%;display:block;border-radius:39px;background:#000}
+  #chrome{position:absolute;inset:7px;background:none!important;pointer-events:none}
   .notch{position:absolute;top:16px;left:50%;transform:translateX(-50%);width:28%;height:3%;border-radius:99px;background:#000}
   .readout{width:100%;display:flex;flex-direction:column;gap:6px;font:400 12px/1.5 "JetBrains Mono",ui-monospace,monospace;color:var(--ink-3)}
   .readout .big{font-size:13px;color:var(--ink)}
@@ -94,7 +95,7 @@
   </header>
 
   <div class="stage">
-    <div class="phone"><canvas id="cv" width="1290" height="2796"></canvas><div class="notch"></div></div>
+    <div class="phone"><canvas id="cv" width="1290" height="2796"></canvas><canvas id="chrome" width="1290" height="2796"></canvas><div class="notch"></div></div>
     <div class="readout">
       <div class="bar"><i id="barFill"></i></div>
       <div class="big" id="r1"></div><div id="r2"></div>
@@ -233,8 +234,36 @@
       </div>
     </details>
 
+    <details>
+      <summary><span class="n">09</span> Lock screen guides</summary>
+      <div class="body">
+        <label class="tog f"><input type="checkbox" data-p="ui.on"> Show clock, flashlight and camera in the preview</label>
+        <div class="grid2 f">
+          <label class="tog"><input type="checkbox" data-p="ui.clock"> Clock &amp; date</label>
+          <label class="tog"><input type="checkbox" data-p="ui.btns"> Corner buttons</label>
+        </div>
+        <div class="grid2 f">
+          <div><label>Clock centre<span class="val" data-v="ui.clockY" data-u="%"></span></label><input type="range" min="8" max="40" step="0.2" data-p="ui.clockY"></div>
+          <div><label>Buttons centre<span class="val" data-v="ui.btnY" data-u="%"></span></label><input type="range" min="80" max="98" step="0.2" data-p="ui.btnY"></div>
+        </div>
+        <p class="hint">Guides only — never drawn into the wallpaper or the downloaded PNG. Apple doesn't publish these coordinates, so the defaults are measured from iPhone 15 screenshots. Take a screenshot of your own lock screen and nudge the two sliders until they line up.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary><span class="n">10</span> Website storage</summary>
+      <div class="body">
+        <p class="hint" id="storeState" style="margin-top:12px">Checking…</p>
+        <div class="btns">
+          <button class="act" id="saveCloud" type="button">Save to website</button>
+          <button class="act" id="loadCloud" type="button">Load from website</button>
+        </div>
+        <p class="hint">Once saved, the Shortcut URL below never needs changing again — the plain <b>/api/wallpaper</b> address reads whatever you last saved, from any browser. Config codes stay as a fallback.</p>
+      </div>
+    </details>
+
     <details open>
-      <summary><span class="n">09</span> Sync, export &amp; Shortcut</summary>
+      <summary><span class="n">11</span> Sync, export &amp; Shortcut</summary>
       <div class="body">
         <div class="f"><label for="size">Screen size</label>
           <select id="size" data-p="size">
@@ -254,7 +283,8 @@
           <button class="act" id="reset" type="button">Reset all</button>
         </div>
 
-        <div class="f"><label for="urlOut">Shortcut URL — click to select all</label><input type="text" id="urlOut" readonly spellcheck="false"></div>
+        <div class="f"><label for="urlOut">Shortcut URL — click to select all</label><input type="text" id="urlOut" readonly spellcheck="false">
+          <p class="hint" id="verify"></p></div>
 
         <div class="f"><label for="code">Config code — paste one here to load it, on any device</label>
           <textarea id="code" rows="4" spellcheck="false"></textarea></div>
@@ -296,6 +326,7 @@ const fresh = () => { const y = new Date().getFullYear(); return {
   bgi:{url:'',fit:'cover',op:100},
   glass:{on:false,tint:'#ffffff',op:12,r:44,pad:4,border:18,blur:40},
   stat:{on:false,fmt:'{done} / {total}  ·  {pct}',font:'Inter',size:44,b:0,i:0,c:'#ffffff',x:50,y:88},
+  ui:{on:true,clock:true,btns:true,clockY:19.5,btnY:92.7},
   txt:[], hl:[] }; };
 let S = fresh(), bgLocal = null, bgImg = null;
 
@@ -428,6 +459,38 @@ function drawBg(W,H){
   ctx.drawImage(bgImg,dx,dy,dw,dh);
   return {dx,dy,dw,dh};
 }
+/* Calibrated against iPhone 15 screenshots (393 x 852pt). Apple publishes no
+   figures for these, so both offsets are user-adjustable. */
+function drawChrome(W,H){
+  const cc=$('#chrome'), x=cc.getContext('2d');
+  if(cc.width!==W){ cc.width=W; cc.height=H; }
+  x.clearRect(0,0,W,H);
+  if(!S.ui.on) return;
+  const pt = W/393;                      // logical points -> device pixels
+  x.save();
+  if(S.ui.clock){
+    x.textAlign='center'; x.fillStyle='rgba(255,255,255,.92)';
+    x.font=`500 ${17*pt}px Inter, sans-serif`;
+    x.fillText('Wednesday, 29 July', W/2, H*S.ui.clockY/100 - 52*pt);
+    x.font=`300 ${82*pt}px "SF Pro Display", Inter, sans-serif`;
+    x.textBaseline='middle';
+    x.fillText('9:41', W/2, H*S.ui.clockY/100);
+  }
+  if(S.ui.btns){
+    const d=52*pt, cy=H*S.ui.btnY/100;
+    for(const [cx,glyph] of [[64*pt,'\u25C9'],[W-64*pt,'\u25A3']]){
+      x.beginPath(); x.arc(cx,cy,d/2,0,Math.PI*2);
+      x.fillStyle='rgba(255,255,255,.16)'; x.fill();
+      x.fillStyle='rgba(255,255,255,.75)'; x.textAlign='center'; x.textBaseline='middle';
+      x.font=`${22*pt}px Inter, sans-serif`; x.fillText(glyph,cx,cy);
+    }
+    x.beginPath();
+    x.roundRect(W/2-70*pt, H-13*pt, 140*pt, 5*pt, 3*pt);
+    x.fillStyle='rgba(255,255,255,.5)'; x.fill();
+  }
+  x.restore();
+}
+
 function render(){
   const [W,H]=S.size.split('x').map(Number);
   if(cv.width!==W){ cv.width=W; cv.height=H; }
@@ -497,10 +560,12 @@ function render(){
   for(const t of S.txt) drawText(t,W,H,done,n,today);
   if(S.stat.on) drawText({...S.stat,s:S.stat.fmt},W,H,done,n,today);
 
+  drawChrome(W,H);
   $('#barFill').style.width=(done/n*100)+'%';
   $('#r1').textContent=`${done} / ${n} days   ${(done/n*100).toFixed(1)}%`;
   $('#r2').textContent=`${L.cols} x ${L.rows} grid   pitch ${L.pitch.toFixed(1)}px   ${n-done} left`;
-  $('#urlOut').value = endpoint()+'?c='+imgCode();
+  $('#urlOut').value = cloudSaved ? endpoint() : endpoint()+'?c='+imgCode();
+  verify();
   const codeBox=$('#code');
   if(document.activeElement!==codeBox) codeBox.value = fullCode();
 }
@@ -509,6 +574,26 @@ function render(){
    copied before. */
 function draw(){ render(); ensureFonts().then(render).catch(()=>{}); }
 function commit(){ draw(); save(); }
+
+/* Round-trips the URL through the same merge the server performs and compares
+   it against the live settings, so a dropped field cannot go unnoticed. */
+function verify(){
+  const p = b64u.dec(imgCode());
+  const bad = [];
+  for(const g of ['col','dot','pad','off','week','bgi','glass','stat']){
+    const merged = {...DEF[g], ...(p[g]||{})};
+    for(const k in S[g]) if(String(merged[k])!==String(S[g][k])) bad.push(g+'.'+k);
+  }
+  if(String(p.s)!==String(S.s)) bad.push('start');
+  if(String(p.e)!==String(S.e)) bad.push('end');
+  if((p.size||'1290x2796')!==S.size) bad.push('size');
+  if((p.txt||[]).length!==S.txt.length) bad.push('text layers');
+  if((p.hl||[]).length!==S.hl.length) bad.push('checkpoints');
+  const el=$('#verify');
+  if(el) el.innerHTML = bad.length
+    ? '<span style="color:#ff8f6b">Not carried: '+bad.join(', ')+'</span>'
+    : '<span style="color:var(--accent)">All settings carried \u2713</span>';
+}
 
 async function copyText(t){
   try { await navigator.clipboard.writeText(t); return true; }
@@ -646,6 +731,41 @@ $('#reset').onclick=()=>{ if(!confirm('Reset every setting?')) return;
   localStorage.removeItem('onedot.v3'); S=fresh(); bgLocal=null; bgImg=null;
   paint(); drawHl(); drawTxt(); commit(); };
 
+/* ---------- website storage ---------- */
+let cloudSaved = false;
+const api = path => (location.protocol==='file:' ? '' : location.origin) + path;
+
+async function checkCloud(){
+  const el=$('#storeState');
+  try{
+    const r = await fetch(api('/api/config'));
+    const j = await r.json();
+    if(j.ok && j.config){ cloudSaved=true;
+      el.innerHTML='<span style="color:var(--accent)">Connected \u2713 last saved '+(j.saved||'').slice(0,16).replace('T',' ')+'</span>'; }
+    else if(j.ok){ cloudSaved=false; el.textContent='Connected, nothing saved yet.'; }
+    else { cloudSaved=false; el.innerHTML='<span style="color:var(--warn)">'+(j.error||'Not set up')+'</span>'; }
+  }catch{ cloudSaved=false; el.innerHTML='<span style="color:var(--warn)">Not set up \u2014 config codes still work.</span>'; }
+  render();
+}
+$('#saveCloud').onclick=async e=>{
+  e.target.textContent='Saving…';
+  try{
+    const r=await fetch(api('/api/config'),{method:'POST',headers:{'content-type':'application/json'},
+      body:JSON.stringify({state:S, image:payload()})});
+    const j=await r.json();
+    if(!j.ok) throw new Error(j.error||'failed');
+    cloudSaved=true; flash(e.target,'Saved \u2713','Save to website'); checkCloud();
+  }catch(err){ cloudSaved=false; flash(e.target,'Failed','Save to website'); $('#storeState').innerHTML='<span style="color:var(--warn)">'+err.message+'</span>'; }
+};
+$('#loadCloud').onclick=async e=>{
+  try{
+    const j=await (await fetch(api('/api/config'))).json();
+    if(!j.ok||!j.config) throw new Error('nothing saved');
+    adopt(j.config.state||j.config); paint(); drawHl(); drawTxt(); commit();
+    flash(e.target,'Loaded \u2713','Load from website');
+  }catch(err){ flash(e.target,'Nothing saved','Load from website'); }
+};
+
 /* ---------- boot ---------- */
 const fromUrl = new URLSearchParams(location.search).get('edit');
 if(fromUrl){
@@ -659,6 +779,7 @@ $('#pv').value='';
 if(bgLocal) loadBg(bgLocal); else if(S.bgi.url) loadBg(S.bgi.url);
 draw();
 document.fonts.ready.then(draw);
+checkCloud();
 })();
 </script>
 </body>
