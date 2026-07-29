@@ -74,8 +74,7 @@
   .btns{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}
   .hint{color:var(--ink-3);font-size:11.5px;margin:9px 0 0}
   .hint.warn{color:var(--warn)}
-  code.url{display:block;background:#0b0b0e;border:1px solid var(--line);border-radius:10px;padding:11px;
-    font:400 11px/1.6 "JetBrains Mono",monospace;color:#8fe3cd;word-break:break-all;max-height:110px;overflow:auto}
+  #urlOut{font:400 11.5px/1.5 "JetBrains Mono",monospace;color:#8fe3cd;background:#0b0b0e;cursor:pointer}
   ol.steps{margin:12px 0 0;padding-left:18px;color:var(--ink-2);font-size:12.5px}
   ol.steps li{margin-bottom:5px}
   ol.steps b{color:var(--ink);font-weight:500}
@@ -255,7 +254,7 @@
           <button class="act" id="reset" type="button">Reset all</button>
         </div>
 
-        <div class="f"><label>Shortcut URL</label><code class="url" id="urlOut"></code></div>
+        <div class="f"><label for="urlOut">Shortcut URL — click to select all</label><input type="text" id="urlOut" readonly spellcheck="false"></div>
 
         <div class="f"><label for="code">Config code — paste one here to load it, on any device</label>
           <textarea id="code" rows="4" spellcheck="false"></textarea></div>
@@ -320,7 +319,31 @@ const b64u = {
     const bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));
     return JSON.parse(new TextDecoder().decode(bytes)); }
 };
-const payload = () => { const {tzA,tzB,tzUse,...rest}=S; return {...rest, tz:activeTz(), v:3}; };
+/* Must match the server's defaults exactly. Anything equal to these is left
+   out of the URL, which keeps it short enough to copy without mishap. */
+const DEF = {
+  col:{bg:'#000000',past:'#ffffff',left:'#2e2e33',today:'#ff9f0a'},
+  dot:{shape:'circle',fill:62}, pad:{t:27,b:22,x:8}, off:{x:0,y:0},
+  week:{on:false,start:0,set:'en',size:34,color:'#8a8a90'},
+  bgi:{url:'',fit:'cover',op:100},
+  glass:{on:false,tint:'#ffffff',op:12,r:44,pad:4,border:18,blur:40},
+  stat:{on:false,fmt:'{done} / {total}',font:'Inter',size:44,b:0,i:0,c:'#ffffff',x:50,y:88},
+};
+function prune(obj, def){
+  const out={};
+  for(const k in obj) if(String(obj[k])!==String(def[k])) out[k]=obj[k];
+  return Object.keys(out).length ? out : null;
+}
+const payload = () => {
+  const p = { s:S.s, e:S.e, tz:activeTz(), v:3 };
+  if(S.size!=='1290x2796') p.size=S.size;
+  for(const g of ['col','dot','pad','off','week','bgi','glass','stat']){
+    const d=prune(S[g],DEF[g]); if(d) p[g]=d;
+  }
+  if(S.txt.length) p.txt=S.txt;
+  if(S.hl.length) p.hl=S.hl;
+  return p;
+};
 const fullCode = () => b64u.enc(S);           // everything, for editing elsewhere
 const imgCode  = () => b64u.enc(payload());   // flattened, for the image endpoint
 
@@ -477,11 +500,25 @@ function render(){
   $('#barFill').style.width=(done/n*100)+'%';
   $('#r1').textContent=`${done} / ${n} days   ${(done/n*100).toFixed(1)}%`;
   $('#r2').textContent=`${L.cols} x ${L.rows} grid   pitch ${L.pitch.toFixed(1)}px   ${n-done} left`;
-  $('#urlOut').textContent = endpoint()+'?c='+imgCode();
-  $('#code').value = fullCode();
+  $('#urlOut').value = endpoint()+'?c='+imgCode();
+  const codeBox=$('#code');
+  if(document.activeElement!==codeBox) codeBox.value = fullCode();
 }
-async function draw(){ await ensureFonts(); render(); }
+/* render() is synchronous so the Shortcut URL is always current. Fonts only
+   refine the preview, and must never gate it -- that is how a stale URL got
+   copied before. */
+function draw(){ render(); ensureFonts().then(render).catch(()=>{}); }
 function commit(){ draw(); save(); }
+
+async function copyText(t){
+  try { await navigator.clipboard.writeText(t); return true; }
+  catch {
+    const ta=document.createElement('textarea');
+    ta.value=t; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    const ok=document.execCommand('copy'); ta.remove(); return ok;
+  }
+}
 
 /* ---------- repeatable rows ---------- */
 const fontOpts = v => FONTS.map(f=>`<option${f===v?' selected':''}>${f}</option>`).join('');
@@ -593,10 +630,14 @@ $('#rmBg').onclick=()=>{ bgLocal=null; bgImg=null; S.bgi.url=''; $('#bgu').value
 $('#dl').onclick=()=>{ const a=document.createElement('a');
   a.download=`onedot-${S.s}-${S.e}.png`; a.href=cv.toDataURL('image/png'); a.click(); };
 const flash=(btn,txt,orig)=>{ btn.textContent=txt; setTimeout(()=>btn.textContent=orig,1300); };
-$('#copy').onclick=async e=>{ await navigator.clipboard.writeText($('#urlOut').textContent); flash(e.target,'Copied','Copy Shortcut URL'); };
-$('#copyCode').onclick=async e=>{ await navigator.clipboard.writeText(fullCode()); flash(e.target,'Copied','Copy config code'); };
-$('#editlink').onclick=async e=>{ await navigator.clipboard.writeText(editorLink()); flash(e.target,'Copied','Copy editor link'); };
-$('#test').onclick=()=>window.open($('#urlOut').textContent,'_blank');
+$('#copy').onclick=async e=>{ const ok=await copyText($('#urlOut').value);
+  flash(e.target, ok?'Copied full URL':'Press Cmd+C now','Copy Shortcut URL'); if(!ok) $('#urlOut').select(); };
+$('#copyCode').onclick=async e=>{ const ok=await copyText(fullCode());
+  flash(e.target, ok?'Copied':'Select and copy','Copy config code'); };
+$('#editlink').onclick=async e=>{ const ok=await copyText(editorLink());
+  flash(e.target, ok?'Copied':'Select and copy','Copy editor link'); };
+$('#test').onclick=()=>window.open($('#urlOut').value,'_blank');
+$('#urlOut').onclick=e=>e.target.select();
 $('#loadCode').onclick=()=>{
   try{ adopt(b64u.dec($('#code').value)); paint(); drawHl(); drawTxt(); commit(); }
   catch{ alert('That config code could not be read. Copy it again in full.'); }
