@@ -1,3 +1,4 @@
+import https from 'node:https';
 import opentype from 'opentype.js';
 import { Surface, encodePNG, decodePNG, pathToPolys } from './_render.js';
 
@@ -37,9 +38,34 @@ function dims(shape, d) {
   return [d, d, 0];
 }
 
-const timed = (ms, p) => Promise.race([
-  p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms)),
-]);
+/**
+ * Node's fetch pools keep-alive sockets, and Lambda will not finish an
+ * invocation while the event loop still has one open -- that is a timeout even
+ * though the image was already built. node:https with keepAlive off closes the
+ * socket, and destroy() on timeout guarantees nothing is left behind.
+ */
+function grab(url, ms, headers = {}, hops = 0) {
+  return new Promise((resolve, reject) => {
+    const req = https.get(url, {
+      headers,
+      agent: new https.Agent({ keepAlive: false }),
+      timeout: ms,
+    }, res => {
+      if ([301, 302, 303, 307, 308].includes(res.statusCode) && res.headers.location && hops < 3) {
+        res.resume();
+        return grab(res.headers.location, ms, headers, hops + 1).then(resolve, reject);
+      }
+      if (res.statusCode !== 200) { res.resume(); return reject(new Error('http ' + res.statusCode)); }
+      const parts = [];
+      res.on('data', d => parts.push(d));
+      res.on('end', () => resolve(Buffer.concat(parts)));
+      res.on('error', reject);
+    });
+    req.on('timeout', () => req.destroy(new Error('timeout')));
+    req.on('error', err => { req.destroy(); reject(err); });
+    setTimeout(() => req.destroy(new Error('deadline')), ms + 200).unref();
+  });
+}
 
 /** Google Fonts serves TTF only to old user agents; opentype needs TTF. */
 async function loadFont(family, weight, italic) {
@@ -48,22 +74,22 @@ async function loadFont(family, weight, italic) {
 
   const url = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(family) +
     ':ital,wght@' + (italic ? '1,' : '0,') + weight;
-  const css = await timed(3000, fetch(url, {
-    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; rv:2.0) Gecko/20100101 Firefox/4.0' },
-  }).then(r => (r.ok ? r.text() : '')));
+  const css = (await grab(url, 2500, {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; rv:2.0) Gecko/20100101 Firefox/4.0',
+  })).toString('utf8');
 
   const m = css.match(/src:\s*url\(([^)]+)\)\s*format\(['"]?(truetype|opentype)/);
   if (!m) throw new Error('no ttf for ' + family);
 
-  const buf = await timed(4000, fetch(m[1]).then(r => r.arrayBuffer()));
-  const font = opentype.parse(buf);
+  const buf = await grab(m[1], 3000);
+  const font = opentype.parse(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength));
   FONT_CACHE.set(key, font);
   return font;
 }
 
 async function loadImage(url) {
   if (IMG_CACHE.has(url)) return IMG_CACHE.get(url);
-  const buf = Buffer.from(await timed(5000, fetch(url).then(r => r.arrayBuffer())));
+  const buf = await grab(url, 4000);
   const img = decodePNG(buf);
   IMG_CACHE.set(url, img);
   return img;
