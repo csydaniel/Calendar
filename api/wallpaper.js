@@ -202,21 +202,24 @@ export default async function handler(req, res) {
     const labelSize = week.size * k;
     const labelH = week.on ? labelSize * 1.9 : 0;
 
+    // sx / sy scale column and row spacing independently (100 = dots touching).
+    const sx = (off.sx ?? 100) / 100, sy = (off.sy ?? 100) / 100;
     let cols, rows, pitch, lead = 0;
     if (week.on) {
       cols = 7;
       lead = (new Date(start).getUTCDay() - Number(week.start) + 7) % 7;
       rows = Math.ceil((lead + n) / 7);
-      pitch = Math.min(areaW / 7, (areaH - labelH) / rows);
+      pitch = Math.min(areaW / 7 / sx, (areaH - labelH) / rows / sy);
     } else {
-      const r = solve(n, areaW, areaH);
+      const r = solve(n, areaW / sx, areaH / sy);
       cols = r.cols; rows = r.rows; pitch = r.pitch;
     }
 
+    const px = pitch * sx, py = pitch * sy;
     const d = pitch * dot.fill / 100;
     const [dw, dh, dr] = dims(dot.shape, d);
     const spin = dot.shape === 'diamond';
-    const gridW = cols * pitch, gridH = rows * pitch + labelH;
+    const gridW = cols * px, gridH = rows * py + labelH;
     const ox = areaX + (areaW - gridW) / 2 + W * off.x / 100;
     const oy = areaY + (areaH - gridH) / 2 + H * off.y / 100;
 
@@ -246,15 +249,21 @@ export default async function handler(req, res) {
 
     for (let i = 0; i < n; i++) {
       const idx = lead + i;
-      const cx = ox + (idx % cols) * pitch + pitch / 2;
-      const cy = oy + labelH + Math.floor(idx / cols) * pitch + pitch / 2;
+      const cx = ox + (idx % cols) * px + px / 2;
+      const cy = oy + labelH + Math.floor(idx / cols) * py + py / 2;
       surf.roundRect(cx, cy, dw, dh, dr, i < passed ? col.past : i === passed ? col.today : col.left, 1, spin);
       const hit = ringFor(i);
       if (hit) {
-        const rw = Math.max(1, (hit.w ?? 8) / 100 * pitch);
-        const gap = (hit.g ?? 8) / 100 * pitch;
-        surf.strokeRoundRect(cx, cy, dw + (gap + rw) * 2, dh + (gap + rw) * 2,
-          dr > 0 ? dr + gap + rw : 0, rw, hit.c, 1, spin);
+        const rw = Math.max(1, (hit.w ?? 8) / 100 * d);
+        // side: 'out' rings around the dot, 'in' rings within it.
+        if ((hit.side ?? 'out') === 'in') {
+          const rc = Math.max(0, dr - rw / 2);
+          surf.strokeRoundRect(cx, cy, dw - rw, dh - rw, rc, rw, hit.c, 1, spin);
+        } else {
+          const gap = (hit.g ?? 8) / 100 * d;
+          surf.strokeRoundRect(cx, cy, dw + (gap + rw) * 2, dh + (gap + rw) * 2,
+            dr > 0 ? dr + gap + rw : 0, rw, hit.c, 1, spin);
+        }
       }
     }
     mark.dots = Date.now() - t0;
