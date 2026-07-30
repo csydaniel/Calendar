@@ -21,21 +21,48 @@ const NOT_SET_UP =
   'Blob storage is not connected. In Vercel: Storage tab -> Create Database -> Blob -> ' +
   'connect it to this project, then redeploy.';
 
+// Vercel connects Blob stores with either a static BLOB_READ_WRITE_TOKEN (older)
+// or OIDC (newer default: BLOB_STORE_ID + a runtime-injected VERCEL_OIDC_TOKEN).
+// Treat any of these as "storage is available" so a connected store is never
+// mistaken for an unconfigured one.
+const blobReady = () => !!(
+  process.env.BLOB_READ_WRITE_TOKEN ||
+  process.env.BLOB_STORE_ID ||
+  process.env.VERCEL_OIDC_TOKEN
+);
+
 /** Reads one named slot's saved config, or null. Used by the wallpaper route. */
 export async function readSlot(name) {
-  if (!process.env.BLOB_READ_WRITE_TOKEN || !name) return null;
-  const { list } = await import('@vercel/blob');
-  const key = slotKey(name);
-  const { blobs } = await list({ prefix: key, limit: 1 });
-  if (!blobs.length) return null;
-  const r = await fetch(blobs[0].url, { cache: 'no-store' });
-  if (!r.ok) return null;
-  return { config: await r.json(), saved: blobs[0].uploadedAt };
+  if (!blobReady() || !name) return null;
+  try {
+    const blob = await import('@vercel/blob');
+    const key = slotKey(name);
+    const { blobs } = await blob.list({ prefix: key, limit: 1 });
+    if (!blobs.length) return null;
+
+    // get() works for both public and private stores; fetch(url) only for
+    // public. Try the SDK first, fall back to a plain fetch.
+    let text = null;
+    try {
+      if (typeof blob.get === 'function') {
+        const r = await blob.get(blobs[0].url);
+        if (r) text = typeof r.text === 'function' ? await r.text() : String(r);
+      }
+    } catch { /* fall through to fetch */ }
+    if (text == null) {
+      const r = await fetch(blobs[0].url, { cache: 'no-store' });
+      if (!r.ok) return null;
+      text = await r.text();
+    }
+    return { config: JSON.parse(text), saved: blobs[0].uploadedAt };
+  } catch {
+    return null;
+  }
 }
 
 export default async function handler(req, res) {
   try {
-    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    if (!blobReady()) {
       return send(res, 200, { ok: false, error: NOT_SET_UP });
     }
 
