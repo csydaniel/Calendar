@@ -14,22 +14,19 @@ async function getOpentype() {
 }
 
 /**
- * Fonts are BUNDLED into the deploy as base64 TTF, so text never depends on a
- * runtime network fetch (the recurring cause of missing text). Any Latin family
- * maps to Inter, Korean to Noto Sans KR. Both are always present.
+ * Fonts are BUNDLED as base64 TTF (Inter, Latin) so text rendering never
+ * depends on a network fetch. Everything maps to Inter; it covers Latin,
+ * digits, and punctuation — which is what the dates, month labels, and text
+ * layers need. Korean glyphs won't render, but nothing crashes.
  */
 async function getFont(family, weight, italic) {
   const w = weight >= 700 ? 700 : 400;
-  const korean = /Noto Sans KR|Korean|한/.test(family);
-  const bundleKey = korean ? `Noto Sans KR|${w}` : `Inter|${w}`;
-  const cacheKey = bundleKey + (italic ? '|i' : '');
-  if (FONT_CACHE.has(cacheKey)) return FONT_CACHE.get(cacheKey);
-
-  const b64 = BUNDLED[bundleKey];
-  const buf = Buffer.from(b64, 'base64');
+  const key = `Inter|${w}`;
+  if (FONT_CACHE.has(key)) return FONT_CACHE.get(key);
+  const buf = Buffer.from(BUNDLED[key], 'base64');
   const opentype = await getOpentype();
   const font = opentype.parse(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength));
-  FONT_CACHE.set(cacheKey, font);
+  FONT_CACHE.set(key, font);
   return font;
 }
 
