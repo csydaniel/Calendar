@@ -279,22 +279,21 @@
           <label for="slotName">Design name</label>
           <input type="text" id="slotName" placeholder="designA" value="designA" spellcheck="false">
         </div>
+        <div class="f"><label>Short Shortcut URL for this design</label>
+          <input type="text" id="slotUrl" readonly spellcheck="false"></div>
         <div class="btns">
-          <button class="act" id="saveSlot" type="button">Save this design</button>
-          <button class="act" id="loadSlot" type="button">Load design</button>
+          <button class="act" id="saveSlot" type="button">Get line for designs.json</button>
+          <button class="act" id="loadSlot" type="button">Load this design</button>
           <button class="act" id="refreshSlots" type="button">Refresh list</button>
         </div>
-        <div class="f"><label>Shortcut URL for this design — short, survives Shortcuts</label>
-          <input type="text" id="slotUrl" readonly spellcheck="false"></div>
+        <div class="f" id="pasteWrap" style="display:none">
+          <label>Paste this line into <b>api/designs.json</b> in your repo, then commit</label>
+          <textarea id="pasteLine" rows="3" spellcheck="false" readonly></textarea>
+          <div class="btns"><button class="act" id="copyLine" type="button">Copy line</button>
+            <button class="act" id="copyFile" type="button">Copy whole file</button></div>
+        </div>
         <div id="slotList" class="f"></div>
-        <p class="hint">Save your current settings under a name like <b>designA</b>, then use the short link above in the Shortcut. The long config code always got truncated by Shortcuts; a short named link doesn't. Designs sync across every browser.</p>
-      </div>
-    </details>
-
-    <details open>
-      <summary><span class="n">10b</span> Full config code (fallback)</summary>
-      <div class="body">
-        <p class="hint" id="cloudState" style="margin-top:12px"></p>
+        <p class="hint">Designs live in <b>api/designs.json</b> in your repo — no database, no token. Name your design, get its line, paste it into that file on GitHub, commit. Then <b>/api/wallpaper/designA</b> renders it. Short link, survives Shortcuts, syncs everywhere the repo deploys.</p>
       </div>
     </details>
 
@@ -805,10 +804,9 @@ $('#reset').onclick=()=>{ if(!confirm('Reset every setting?')) return;
   localStorage.removeItem('onedot.v3'); S=fresh(); bgLocal=null; bgImg=null;
   paint(); drawHl(); drawTxt(); commit(); };
 
-/* ---------- saved designs (named slots) ---------- */
-let cloudSaved = false;
+/* ---------- saved designs (committed file, no database) ---------- */
 const api = path => (location.protocol==='file:' ? '' : location.origin) + path;
-const slotName = () => ($('#slotName').value || 'designA').toLowerCase().replace(/[^a-z0-9_-]/g,'') || 'designA';
+const slotName = () => ($('#slotName').value || 'designA').toLowerCase().replace(/[^a-z0-9_-]/g,'') || 'designa';
 
 function slotUrl(){
   const base = location.protocol==='file:' ? 'https://YOUR-PROJECT.vercel.app' : location.origin;
@@ -820,17 +818,14 @@ async function checkCloud(){
   try{
     const j = await (await fetch(api('/api/config?list=1'))).json();
     if(j.ok){
-      cloudSaved=true;
-      el.innerHTML='<span style="color:var(--accent)">Connected \u2713 '+(j.slots?.length||0)+' design(s) saved</span>';
+      el.innerHTML='<span style="color:var(--accent)">designs.json reachable \u2713 '+(j.slots?.length||0)+' design(s) in the file</span>';
       renderSlots(j.slots||[]);
     } else {
-      cloudSaved=false;
-      el.innerHTML='<span style="color:var(--warn)">'+(j.error||'Not set up')+'</span>';
+      el.innerHTML='<span style="color:var(--warn)">'+(j.error||'Could not read designs.json')+'</span>';
       $('#slotList').innerHTML='';
     }
   }catch{
-    cloudSaved=false;
-    el.innerHTML='<span style="color:var(--warn)">Not set up \u2014 full config codes still work.</span>';
+    el.innerHTML='<span style="color:var(--warn)">Deploy first, then this shows your saved designs.</span>';
   }
   $('#slotUrl').value = slotUrl();
   render();
@@ -838,20 +833,13 @@ async function checkCloud(){
 
 function renderSlots(slots){
   const box=$('#slotList');
-  if(!slots.length){ box.innerHTML='<p class="hint">No designs saved yet.</p>'; return; }
-  box.innerHTML='<label>Saved designs — tap to load</label>';
+  if(!slots.length){ box.innerHTML='<p class="hint">No designs in the file yet.</p>'; return; }
+  box.innerHTML='<label>Designs currently in the file — tap to load into the editor</label>';
   slots.sort((a,b)=>a.name.localeCompare(b.name)).forEach(s=>{
     const row=document.createElement('div'); row.className='card'; row.style.padding='9px 11px';
     row.innerHTML=`<div class="top" style="margin:0"><strong style="color:var(--ink)">${s.name}</strong>
-      <span class="hint" style="margin:0 8px 0 auto">${(s.saved||'').slice(0,10)}</span>
-      <button class="act" type="button" style="padding:4px 9px" data-load="${s.name}">Load</button>
-      <button class="x" type="button" data-del="${s.name}" style="margin-left:6px">\u00d7</button></div>`;
+      <button class="act" type="button" style="padding:4px 9px;margin-left:auto" data-load="${s.name}">Load</button></div>`;
     row.querySelector('[data-load]').onclick=()=>{ $('#slotName').value=s.name; loadSlotByName(s.name); };
-    row.querySelector('[data-del]').onclick=async()=>{
-      if(!confirm('Delete design "'+s.name+'"?')) return;
-      await fetch(api('/api/config?slot='+encodeURIComponent(s.name)),{method:'DELETE'});
-      checkCloud();
-    };
     box.appendChild(row);
   });
 }
@@ -859,23 +847,32 @@ function renderSlots(slots){
 async function loadSlotByName(name){
   try{
     const j=await (await fetch(api('/api/config?slot='+encodeURIComponent(name)))).json();
-    if(!j.ok||!j.config) throw new Error('not found');
-    adopt(j.config.state||j.config); paint(); drawHl(); drawTxt(); commit();
+    if(!j.ok||!j.code) throw new Error('not found');
+    adopt(b64u.dec(j.code)); paint(); drawHl(); drawTxt(); commit();
     $('#slotUrl').value=slotUrl();
-  }catch(err){ alert('Could not load design "'+name+'".'); }
+  }catch(err){ alert('Design "'+name+'" is not in the file yet.'); }
 }
 
 $('#saveSlot').onclick=async e=>{
-  const name=slotName(); e.target.textContent='Saving\u2026';
+  const name=slotName();
   try{
     const r=await fetch(api('/api/config'),{method:'POST',headers:{'content-type':'application/json'},
-      body:JSON.stringify({slot:name, state:S, image:payload()})});
+      body:JSON.stringify({slot:name, code:imgCode()})});
     const j=await r.json();
     if(!j.ok) throw new Error(j.error||'failed');
-    flash(e.target,'Saved \u2713','Save this design'); checkCloud();
-  }catch(err){ flash(e.target,'Failed','Save this design');
-    $('#storeState').innerHTML='<span style="color:var(--warn)">'+err.message+'</span>'; }
+    $('#pasteWrap').style.display='';
+    $('#pasteLine').value=j.line;
+    $('#pasteLine').dataset.file=j.file;
+    flash(e.target,'Line ready \u2193','Get line for designs.json');
+  }catch(err){
+    // Offline / not deployed: build the line locally so it still works.
+    $('#pasteWrap').style.display='';
+    $('#pasteLine').value='  '+JSON.stringify(name)+': '+JSON.stringify(imgCode());
+    flash(e.target,'Line ready \u2193','Get line for designs.json');
+  }
 };
+$('#copyLine').onclick=async e=>{ await copyText($('#pasteLine').value); flash(e.target,'Copied','Copy line'); };
+$('#copyFile').onclick=async e=>{ const f=$('#pasteLine').dataset.file; if(f){ await copyText(f); flash(e.target,'Copied','Copy whole file'); } };
 $('#loadSlot').onclick=()=>loadSlotByName(slotName());
 $('#refreshSlots').onclick=()=>checkCloud();
 $('#slotName').addEventListener('input',()=>{ $('#slotUrl').value=slotUrl(); });
