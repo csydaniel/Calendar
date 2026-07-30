@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>One Dot — wallpaper builder</title>
+<title>DC Calendar Wallpaper</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,700;1,400;1,700&family=Roboto:ital,wght@0,400;0,700;1,400;1,700&family=Noto+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Noto+Sans+KR:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=JetBrains+Mono:ital,wght@0,400;0,700;1,400;1,700&family=Lora:ital,wght@0,400;0,700;1,400;1,700&family=Oswald:wght@400;700&display=swap" rel="stylesheet">
@@ -89,7 +89,7 @@
   <header>
     <div class="brand">
       <span class="mark"></span>
-      <div><h1>One Dot</h1><p class="sub">One dot per day. Fills at local midnight.</p></div>
+      <div><h1>DC Calendar Wallpaper</h1><p class="sub">One dot per day. Fills at local midnight.</p></div>
     </div>
     <p class="sub" id="saved">Settings save automatically</p>
   </header>
@@ -213,6 +213,23 @@
     </details>
 
     <details>
+      <summary><span class="n">07b</span> Date numbers</summary>
+      <div class="body">
+        <label class="tog f"><input type="checkbox" data-p="nums.on"> Print the date inside each dot</label>
+        <div class="grid2 f">
+          <div><label for="nfont">Font</label><select id="nfont" data-p="nums.font" data-fonts></select></div>
+          <div><label>Size<span class="val" data-v="nums.size" data-u="%"></span></label><input type="range" min="15" max="70" data-p="nums.size"></div>
+        </div>
+        <div class="grid2 f">
+          <label class="sw"><input type="color" data-p="nums.day"><span>Day number</span></label>
+          <label class="sw"><input type="color" data-p="nums.month"><span>Month (on the 1st)</span></label>
+        </div>
+        <label class="tog f"><input type="checkbox" data-p="nums.b"> Bold</label>
+        <p class="hint">The 1st of each month shows its three-letter abbreviation (Jul, Aug…) in the month color; every other day shows its date (2–31) in the day color. Size is a percentage of the dot's diameter.</p>
+      </div>
+    </details>
+
+    <details>
       <summary><span class="n">08</span> Background image &amp; glass</summary>
       <div class="body">
         <div class="f"><label for="bgf">Choose a file</label><input type="file" id="bgf" accept="image/*"></div>
@@ -317,6 +334,7 @@ const cv = $('#cv'), ctx = cv.getContext('2d');
 const DAY = 86400000;
 const FONTS = ['Inter','Roboto','Noto Sans','Noto Sans KR','Playfair Display','JetBrains Mono','Lora','Oswald'];
 const LABELS = {en:['S','M','T','W','T','F','S'],en2:['Su','Mo','Tu','We','Th','Fr','Sa'],ko:['일','월','화','수','목','금','토']};
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const ZONES = [[9,'Korea / Japan (+9)'],[8,'Singapore / China (+8)'],[7,'Vietnam / Thailand (+7)'],
   [2,'Germany, summer (+2)'],[1,'Germany, winter (+1)'],[0,'UTC (+0)'],
   [-4,'New York, summer (−4)'],[-5,'New York, winter (−5)'],[-7,'Los Angeles, summer (−7)'],[-8,'Los Angeles, winter (−8)']];
@@ -330,6 +348,7 @@ const fresh = () => { const y = new Date().getFullYear(); return {
   bgi:{url:'',fit:'cover',op:100},
   glass:{on:false,tint:'#ffffff',op:12,r:44,pad:4,border:18,blur:40},
   stat:{on:false,fmt:'{done} / {total}  ·  {pct}',font:'Inter',size:44,b:0,i:0,c:'#ffffff',x:50,y:88},
+  nums:{on:false,font:'Inter',b:0,size:34,day:'#8a8a90',month:'#ff9f0a'},
   ui:{on:true,clock:true,btns:true,clockY:19.5,btnY:92.7},
   txt:[], hl:[] }; };
 let S = fresh(), bgLocal = null, bgImg = null;
@@ -363,6 +382,7 @@ const DEF = {
   bgi:{url:'',fit:'cover',op:100},
   glass:{on:false,tint:'#ffffff',op:12,r:44,pad:4,border:18,blur:40},
   stat:{on:false,fmt:'{done} / {total}',font:'Inter',size:44,b:0,i:0,c:'#ffffff',x:50,y:88},
+  nums:{on:false,font:'Inter',b:0,size:34,day:'#8a8a90',month:'#ff9f0a'},
 };
 function prune(obj, def){
   const out={};
@@ -372,7 +392,7 @@ function prune(obj, def){
 const payload = () => {
   const p = { s:S.s, e:S.e, tz:activeTz(), v:3 };
   if(S.size!=='1290x2796') p.size=S.size;
-  for(const g of ['col','dot','pad','off','week','bgi','glass','stat']){
+  for(const g of ['col','dot','pad','off','week','bgi','glass','stat','nums']){
     const d=prune(S[g],DEF[g]); if(d) p[g]=d;
   }
   if(S.txt.length) p.txt=S.txt;
@@ -439,6 +459,7 @@ function faceList(){
   for(const t of S.txt) out.add(`${t.i?'italic ':''}${t.b?700:400} 40px "${t.font}"`);
   if(S.stat.on) out.add(`${S.stat.i?'italic ':''}${S.stat.b?700:400} 40px "${S.stat.font}"`);
   if(S.week.on) out.add(`400 40px "${S.week.set==='ko'?'Noto Sans KR':'Inter'}"`);
+  if(S.nums.on) out.add(`${S.nums.b?700:400} 40px "${S.nums.font}"`);
   return [...out];
 }
 async function ensureFonts(){
@@ -568,6 +589,23 @@ function render(){
     ctx.restore();
   }
 
+  if(S.nums.on){
+    const nsize=S.nums.size/100*d;
+    ctx.save();
+    ctx.font=`${S.nums.b?700:400} ${nsize}px "${S.nums.font}", Inter, sans-serif`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    for(let i=0;i<n;i++){
+      const idx=L.lead+i;
+      const cx=L.ox+(idx%L.cols)*L.px+L.px/2;
+      const cy=L.oy+L.labelH+Math.floor(idx/L.cols)*L.py+L.py/2;
+      const date=new Date(start+i*DAY);
+      const dom=date.getUTCDate();
+      ctx.fillStyle = dom===1 ? S.nums.month : S.nums.day;
+      ctx.fillText(dom===1 ? MONTHS[date.getUTCMonth()] : String(dom), cx, cy);
+    }
+    ctx.restore();
+  }
+
   for(const t of S.txt) drawText(t,W,H,done,n,today);
   if(S.stat.on) drawText({...S.stat,s:S.stat.fmt},W,H,done,n,today);
 
@@ -591,7 +629,7 @@ function commit(){ draw(); save(); }
 function verify(){
   const p = b64u.dec(imgCode());
   const bad = [];
-  for(const g of ['col','dot','pad','off','week','bgi','glass','stat']){
+  for(const g of ['col','dot','pad','off','week','bgi','glass','stat','nums']){
     const merged = {...DEF[g], ...(p[g]||{})};
     for(const k in S[g]) if(String(merged[k])!==String(S[g][k])) bad.push(g+'.'+k);
   }
@@ -709,7 +747,7 @@ document.addEventListener('input', e=>{
   let v = e.target.type==='checkbox' ? e.target.checked
         : e.target.type==='range' ? +e.target.value : e.target.value;
   if(['week.start','tzA','tzB'].includes(p)) v=Number(v);
-  if(['stat.b','stat.i'].includes(p)) v=v?1:0;
+  if(['stat.b','stat.i','nums.b'].includes(p)) v=v?1:0;
   setv(p,v);
   syncVals();
   if(p==='bgi.url'){ loadBg(v); save(); return; }
