@@ -18,6 +18,8 @@ const LABELS = {
   ko: ['일', '월', '화', '수', '목', '금', '토'],
 };
 
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
 function solve(n, w, h) {
   let best = { pitch: 0, cols: 1, rows: n };
   for (let cols = 1; cols <= n; cols++) {
@@ -150,6 +152,7 @@ export default async function handler(req, res) {
     const bgi   = { url: '', fit: 'cover', op: 100, ...(c.bgi || {}) };
     const glass = { on: false, tint: '#ffffff', op: 12, r: 44, pad: 4, border: 18, blur: 40, ...(c.glass || {}) };
     const stat  = { on: false, fmt: '{done} / {total}', font: 'Inter', size: 44, b: 0, i: 0, c: '#ffffff', x: 50, y: 88, ...(c.stat || {}) };
+    const nums  = { on: false, font: 'Inter', b: 0, size: 34, day: '#8a8a90', month: '#ff9f0a', ...(c.nums || {}) };
     const texts = c.txt || [];
     const hls   = c.hl || [];
 
@@ -185,6 +188,7 @@ export default async function handler(req, res) {
     const labelSet = LABELS[week.set] || LABELS.en;
     const labelFont = week.set === 'ko' ? 'Noto Sans KR' : 'Inter';
     if (week.on) items.push({ s: '', font: labelFont, b: 0, i: 0, _label: true });
+    if (nums.on) items.push({ s: '', font: nums.font, b: nums.b, i: 0, _label: true });
 
     const wanted = new Map();
     for (const t of items) wanted.set(`${t.font}|${t.b ? 700 : 400}|${t.i ? 1 : 0}`, t);
@@ -289,6 +293,21 @@ export default async function handler(req, res) {
       drawText(font, fmt(t.s), size, t.c, W / 2 + (t.x - 50) / 100 * W, t.y / 100 * H + size * 0.8);
     }
     mark.text = Date.now() - t0;
+
+    if (nums.on) {
+      const font = loaded.get(`${nums.font}|${nums.b ? 700 : 400}|0`);
+      const nsize = nums.size / 100 * d;   // size is a % of dot diameter
+      for (let i = 0; i < n; i++) {
+        const idx = lead + i;
+        const cx = ox + (idx % cols) * px + px / 2;
+        const cy = oy + labelH + Math.floor(idx / cols) * py + py / 2;
+        const date = new Date(start + i * DAY);
+        const dom = date.getUTCDate();
+        const label = dom === 1 ? MONTHS[date.getUTCMonth()] : String(dom);
+        const color = dom === 1 ? nums.month : nums.day;
+        drawText(font, label, nsize, color, cx, cy + nsize * 0.34);
+      }
+    }
 
     const png = encodePNG(W, H, surf.data);
     mark.encode = Date.now() - t0;
