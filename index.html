@@ -613,7 +613,7 @@ function render(){
   $('#barFill').style.width=(done/n*100)+'%';
   $('#r1').textContent=`${done} / ${n} days   ${(done/n*100).toFixed(1)}%`;
   $('#r2').textContent=`${L.cols} x ${L.rows} grid   pitch ${L.pitch.toFixed(1)}px   ${n-done} left`;
-  $('#urlOut').value = cloudSaved ? endpoint() : endpoint()+'?c='+imgCode();
+  $('#urlOut').value = cloudSaved ? endpoint() : endpoint()+'/'+imgCode();
   verify();
   const codeBox=$('#code');
   if(document.activeElement!==codeBox) codeBox.value = fullCode();
