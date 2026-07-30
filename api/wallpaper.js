@@ -1,5 +1,5 @@
 import https from 'node:https';
-import { readConfig } from './config.js';
+import { readSlot } from './config.js';
 import { Surface, encodePNG, decodePNG, pathToPolys } from './_render.js';
 import { BUNDLED } from './_fonts.js';
 
@@ -129,28 +129,41 @@ export default async function handler(req, res) {
     let c = null;
     let source = 'defaults';
 
-    // The code can arrive two ways. Query (?c=CODE) is the original form. Path
-    // (/api/wallpaper/CODE) is preferred for Shortcuts, which mangles long query
-    // strings but passes a clean path through intact.
+    // The path segment /api/wallpaper/<X> is either a short slot name (designA)
+    // saved on the server, or a long inline config code. Query ?c=CODE still
+    // works too. Slot names are what survive Shortcuts intact.
     const pathMatch = url.pathname.match(/\/api\/wallpaper\/(.+)$/);
-    const rawC = q.get('c') || (pathMatch ? decodeURIComponent(pathMatch[1]) : null);
+    const seg = pathMatch ? decodeURIComponent(pathMatch[1]).replace(/\/$/, '') : null;
+    const queryCode = q.get('c');
 
-    // No code anywhere: fall back to whatever was last saved on the site, so
-    // the plain /api/wallpaper address stays correct forever.
-    if (!rawC) {
+    // A short, simple segment is treated as a slot name to look up on the server.
+    const looksLikeSlot = seg && seg.length <= 40 && /^[a-zA-Z0-9_-]+$/.test(seg) && !seg.startsWith('eyJ');
+    if (looksLikeSlot) {
       try {
-        const saved = await readConfig();
-        if (saved?.config?.image) { c = saved.config.image; source = 'stored'; }
-      } catch { /* storage not configured; defaults are fine */ }
+        const found = await readSlot(seg);
+        if (found?.config?.image) { c = found.config.image; source = 'slot:' + seg; }
+        else { source = 'slot-missing:' + seg; }
+      } catch { source = 'slot-error'; }
     }
-    if (!c) c = { s: '2026-01-01', e: '2026-12-31' };
-    if (rawC) {
-      source = 'url';
+
+    // Otherwise the segment (or ?c=) is an inline config code.
+    const rawC = !looksLikeSlot ? (queryCode || seg) : queryCode;
+
+    // Nothing usable yet: fall back to the "default" slot if one is saved.
+    if (!c && !rawC) {
+      try {
+        const found = await readSlot('default');
+        if (found?.config?.image) { c = found.config.image; source = 'slot:default'; }
+      } catch { /* storage not configured; hard defaults are fine */ }
+    }
+    if (!c && !rawC) c = { s: '2026-01-01', e: '2026-12-31' };
+    if (!c && rawC) {
+      source = 'code';
       try { c = decode(rawC); }
       catch {
         return send(res, 400, 'text/plain',
           'The config code in this URL is incomplete or damaged (' + rawC.length +
-          ' characters received). Copy the Shortcut URL again with the Copy button rather than by selecting the text.');
+          ' characters received). Use a short named link like /api/wallpaper/designA instead.');
       }
     }
 
