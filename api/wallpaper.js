@@ -107,28 +107,35 @@ function decode(raw) {
 
 /** Vercel's Node runtime gives (req, res); the response must be written here. */
 function send(res, status, type, body) {
+  const buf = Buffer.isBuffer(body) ? body : Buffer.from(String(body));
   res.statusCode = status;
   res.setHeader('Content-Type', type);
-  res.setHeader('Content-Length', Buffer.byteLength(body));
+  res.setHeader('Content-Length', buf.length);
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
-  res.end(body);
+  res.end(buf);
 }
 
 export default async function handler(req, res) {
   const t0 = Date.now();
   const mark = {};
   try {
+    const url = new URL(req.url || '/', 'http://localhost');
     const q = req.query && Object.keys(req.query).length
       ? new URLSearchParams(req.query)
-      : new URL(req.url || '/', 'http://localhost').searchParams;
+      : url.searchParams;
 
     // A truncated or mangled code must fail loudly. Silently drawing defaults
     // looks like "my settings were ignored" and hides the real problem.
     let c = null;
     let source = 'defaults';
-    const rawC = q.get('c');
 
-    // No code in the URL: fall back to whatever was last saved on the site, so
+    // The code can arrive two ways. Query (?c=CODE) is the original form. Path
+    // (/api/wallpaper/CODE) is preferred for Shortcuts, which mangles long query
+    // strings but passes a clean path through intact.
+    const pathMatch = url.pathname.match(/\/api\/wallpaper\/(.+)$/);
+    const rawC = q.get('c') || (pathMatch ? decodeURIComponent(pathMatch[1]) : null);
+
+    // No code anywhere: fall back to whatever was last saved on the site, so
     // the plain /api/wallpaper address stays correct forever.
     if (!rawC) {
       try {
