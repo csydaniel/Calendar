@@ -1,5 +1,5 @@
 import https from 'node:https';
-import { readSlot } from './config.js';
+import { readDesignCode } from './config.js';
 import { Surface, encodePNG, decodePNG, pathToPolys } from './_render.js';
 import { BUNDLED } from './_fonts.js';
 
@@ -125,45 +125,40 @@ export default async function handler(req, res) {
       : url.searchParams;
 
     // A truncated or mangled code must fail loudly. Silently drawing defaults
-    // looks like "my settings were ignored" and hides the real problem.
+    // hides the real problem.
     let c = null;
     let source = 'defaults';
 
-    // The path segment /api/wallpaper/<X> is either a short slot name (designA)
-    // saved on the server, or a long inline config code. Query ?c=CODE still
-    // works too. Slot names are what survive Shortcuts intact.
+    // The path segment /api/wallpaper/<X> is either a short design name (designA)
+    // stored in designs.json, or a long inline config code. Query ?c=CODE works
+    // too. Design names are what survive Shortcuts intact.
     const pathMatch = url.pathname.match(/\/api\/wallpaper\/(.+)$/);
     const seg = pathMatch ? decodeURIComponent(pathMatch[1]).replace(/\/$/, '') : null;
     const queryCode = q.get('c');
 
-    // A short, simple segment is treated as a slot name to look up on the server.
-    const looksLikeSlot = seg && seg.length <= 40 && /^[a-zA-Z0-9_-]+$/.test(seg) && !seg.startsWith('eyJ');
-    if (looksLikeSlot) {
-      try {
-        const found = await readSlot(seg);
-        if (found?.config?.image) { c = found.config.image; source = 'slot:' + seg; }
-        else { source = 'slot-missing:' + seg; }
-      } catch { source = 'slot-error'; }
+    // A short, simple segment is a design name: look up its code in the file.
+    const looksLikeName = seg && seg.length <= 40 && /^[a-zA-Z0-9_-]+$/.test(seg) && !seg.startsWith('eyJ');
+    let rawC = queryCode;
+    if (looksLikeName) {
+      const code = await readDesignCode(seg);
+      if (code) { rawC = code; source = 'design:' + seg; }
+      else { source = 'design-missing:' + seg; }
+    } else if (seg) {
+      rawC = queryCode || seg;   // segment is itself an inline code
     }
 
-    // Otherwise the segment (or ?c=) is an inline config code.
-    const rawC = !looksLikeSlot ? (queryCode || seg) : queryCode;
-
-    // Nothing usable yet: fall back to the "default" slot if one is saved.
-    if (!c && !rawC) {
-      try {
-        const found = await readSlot('default');
-        if (found?.config?.image) { c = found.config.image; source = 'slot:default'; }
-      } catch { /* storage not configured; hard defaults are fine */ }
+    // Nothing usable: fall back to the "default" design if the file has one.
+    if (!rawC) {
+      const dflt = await readDesignCode('default');
+      if (dflt) { rawC = dflt; source = 'design:default'; }
     }
-    if (!c && !rawC) c = { s: '2026-01-01', e: '2026-12-31' };
-    if (!c && rawC) {
-      source = 'code';
-      try { c = decode(rawC); }
+    if (!rawC) c = { s: '2026-01-01', e: '2026-12-31' };
+    else {
+      try { c = decode(rawC); if (source === 'defaults') source = 'code'; }
       catch {
         return send(res, 400, 'text/plain',
-          'The config code in this URL is incomplete or damaged (' + rawC.length +
-          ' characters received). Use a short named link like /api/wallpaper/designA instead.');
+          'The config code is incomplete or damaged (' + rawC.length +
+          ' characters). Use a short named link like /api/wallpaper/designA instead.');
       }
     }
 
