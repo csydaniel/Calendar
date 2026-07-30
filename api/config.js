@@ -1,5 +1,5 @@
-import { put, list } from '@vercel/blob';
-
+// Imported lazily inside functions: if @vercel/blob isn't installed, importing
+// this module must not throw (wallpaper.js imports readConfig from here).
 const KEY = 'onedot/config.json';
 
 function send(res, status, body) {
@@ -18,6 +18,7 @@ const NOT_SET_UP =
 /** Reads the saved config, or null when nothing has been stored yet. */
 export async function readConfig() {
   if (!process.env.BLOB_READ_WRITE_TOKEN) return null;
+  const { list } = await import('@vercel/blob');
   const { blobs } = await list({ prefix: KEY, limit: 1 });
   if (!blobs.length) return null;
   const r = await fetch(blobs[0].url, { cache: 'no-store' });
@@ -40,6 +41,7 @@ export default async function handler(req, res) {
       }
       if (!body || !body.state) return send(res, 400, { ok: false, error: 'missing state' });
 
+      const { put } = await import('@vercel/blob');
       await put(KEY, JSON.stringify(body), {
         access: 'public',
         contentType: 'application/json',
