@@ -1,10 +1,37 @@
 import https from 'node:https';
 import { readConfig } from './config.js';
 import { Surface, encodePNG, decodePNG, pathToPolys } from './_render.js';
+import { BUNDLED } from './_fonts.js';
 
 const DAY = 86400000;
 const FONT_CACHE = new Map();
 const IMG_CACHE = new Map();
+
+let _opentype = null;
+async function getOpentype() {
+  if (!_opentype) _opentype = (await import('opentype.js')).default;
+  return _opentype;
+}
+
+/**
+ * Fonts are BUNDLED into the deploy as base64 TTF, so text never depends on a
+ * runtime network fetch (the recurring cause of missing text). Any Latin family
+ * maps to Inter, Korean to Noto Sans KR. Both are always present.
+ */
+async function getFont(family, weight, italic) {
+  const w = weight >= 700 ? 700 : 400;
+  const korean = /Noto Sans KR|Korean|한/.test(family);
+  const bundleKey = korean ? `Noto Sans KR|${w}` : `Inter|${w}`;
+  const cacheKey = bundleKey + (italic ? '|i' : '');
+  if (FONT_CACHE.has(cacheKey)) return FONT_CACHE.get(cacheKey);
+
+  const b64 = BUNDLED[bundleKey];
+  const buf = Buffer.from(b64, 'base64');
+  const opentype = await getOpentype();
+  const font = opentype.parse(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength));
+  FONT_CACHE.set(cacheKey, font);
+  return font;
+}
 
 const parse = s => {
   const [y, m, d] = String(s).split('-').map(Number);
@@ -65,27 +92,6 @@ function grab(url, ms, headers = {}, hops = 0) {
     req.on('error', err => { req.destroy(); reject(err); });
     setTimeout(() => req.destroy(new Error('deadline')), ms + 200).unref();
   });
-}
-
-/** Google Fonts serves TTF only to old user agents; opentype needs TTF. */
-async function loadFont(family, weight, italic) {
-  const key = `${family}|${weight}|${italic ? 1 : 0}`;
-  if (FONT_CACHE.has(key)) return FONT_CACHE.get(key);
-
-  const url = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(family) +
-    ':ital,wght@' + (italic ? '1,' : '0,') + weight;
-  const css = (await grab(url, 2500, {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; rv:2.0) Gecko/20100101 Firefox/4.0',
-  })).toString('utf8');
-
-  const m = css.match(/src:\s*url\(([^)]+)\)\s*format\(['"]?(truetype|opentype)/);
-  if (!m) throw new Error('no ttf for ' + family);
-
-  const buf = await grab(m[1], 3000);
-  const opentype = (await import('opentype.js')).default;
-  const font = opentype.parse(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength));
-  FONT_CACHE.set(key, font);
-  return font;
 }
 
 async function loadImage(url) {
@@ -183,20 +189,18 @@ export default async function handler(req, res) {
       .replace(/{pct}/g, (done / n * 100).toFixed(1) + '%')
       .replace(/{date}/g, new Date(today).toISOString().slice(0, 10));
 
-    // ---- fonts up front so text can be measured ----
+    // ---- fonts (bundled, no network) ----
     const items = [...texts.map(t => ({ ...t })), ...(stat.on ? [{ ...stat, s: stat.fmt }] : [])];
     const labelSet = LABELS[week.set] || LABELS.en;
     const labelFont = week.set === 'ko' ? 'Noto Sans KR' : 'Inter';
     if (week.on) items.push({ s: '', font: labelFont, b: 0, i: 0, _label: true });
     if (nums.on) items.push({ s: '', font: nums.font, b: nums.b, i: 0, _label: true });
 
-    const wanted = new Map();
-    for (const t of items) wanted.set(`${t.font}|${t.b ? 700 : 400}|${t.i ? 1 : 0}`, t);
     const loaded = new Map();
-    if (!q.get('nofont')) {
-      await Promise.all([...wanted.entries()].map(async ([kk, t]) => {
-        try { loaded.set(kk, await loadFont(t.font, t.b ? 700 : 400, !!t.i)); } catch {}
-      }));
+    for (const t of items) {
+      const key = `${t.font}|${t.b ? 700 : 400}|${t.i ? 1 : 0}`;
+      if (loaded.has(key)) continue;
+      try { loaded.set(key, await getFont(t.font, t.b ? 700 : 400, !!t.i)); } catch {}
     }
     mark.fonts = Date.now() - t0;
 
